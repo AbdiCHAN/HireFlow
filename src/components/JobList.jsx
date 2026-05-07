@@ -1,6 +1,6 @@
 import JobCard from './JobCard'
 
-const demoJobs = [
+const jobs = [
   {
     id: 1,
     title: 'Frontend Developer',
@@ -40,7 +40,7 @@ const demoJobs = [
 ]
 
 function JobList() {
-  if (demoJobs.length === 0) {
+  if (jobs.length === 0) {
     return (
       <div className="job-list">
         <p className="job-list__eyebrow">Open roles</p>
@@ -58,7 +58,7 @@ function JobList() {
       </div>
 
       <div className="job-list__grid">
-        {demoJobs.map((job) => (
+        {jobs.map((job) => (
           <JobCard job={job} key={job.id} />
         ))}
       </div>
