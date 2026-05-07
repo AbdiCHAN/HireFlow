@@ -1,4 +1,4 @@
-function JobCard({ job }) {
+function jobCard({ job }) {
   return (
     <div className="job-card">
       <div className="job-card__header">
@@ -30,4 +30,4 @@ function JobCard({ job }) {
   )
 }
 
-export default JobCard
+export default jobCard

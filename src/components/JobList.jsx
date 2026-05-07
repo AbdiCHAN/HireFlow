@@ -1,4 +1,4 @@
-import JobCard from './JobCard'
+import jobCard from './JobCard'
 
 const jobs = [
   {
