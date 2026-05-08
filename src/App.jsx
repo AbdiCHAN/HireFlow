@@ -1,179 +1,58 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-
-import SearchBar from "./components/SearchBar";
-import Filters from "./components/Filters";
-import Loader from "./components/Loader";
-import Error from "./components/Error";
-
-import './App.css'
+// src/App.jsx
+import { useState } from "react";
+import Navbar     from "./components/Navbar";
+import Home       from "./pages/Home";
+import JobDetails from "./pages/JobDetails";
+import "./App.css";
 
 function App() {
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [savedIds,    setSavedIds]    = useState(new Set());
+  const [searchTerm,  setSearchTerm]  = useState("");
 
-  const [count, setCount] = useState(0)
-
-  // Interaction & UX states
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const handleSave = (id) => {
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   return (
-    <>
-      <section id="center">
+    <div className="app">
+      <Navbar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        savedCount={savedIds.size}
+        onHomeClick={() => setSelectedJob(null)}
+        onSavedClick={() => setSelectedJob(null)}
+      />
 
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+      <div className="app__body">
+        {selectedJob ? (
+          <JobDetails
+            job={selectedJob}
+            onBack={() => setSelectedJob(null)}
+            isSaved={savedIds.has(selectedJob.id)}
+            onSave={handleSave}
+          />
+        ) : (
+          <Home
+            searchTerm={searchTerm}
+            savedIds={savedIds}
+            onSave={handleSave}
+            onSelectJob={setSelectedJob}
+          />
+        )}
+      </div>
+
+      <footer className="footer">
+        <div className="container">
+          Built with <strong>HireFlow</strong> · Connecting developers with opportunities across Africa &amp; beyond
         </div>
-
-        <div>
-          <h1>HireFlow</h1>
-
-          <p>
-            Search and filter entry-level developer jobs easily.
-          </p>
-        </div>
-
-        {/* Search Component */}
-        <SearchBar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-        />
-
-        {/* Filter Component */}
-        <Filters
-          filterType={filterType}
-          setFilterType={setFilterType}
-        />
-
-        {/* Loader Component */}
-        {loading && <Loader />}
-
-        {/* Error Component */}
-        {error && <Error />}
-
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-
-          <h2>Documentation</h2>
-
-          <p>Your questions, answered</p>
-
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div id="social">
-
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-
-          <h2>Connect with us</h2>
-
-          <p>Join the Vite community</p>
-
-          <ul>
-
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-
-                GitHub
-              </a>
-            </li>
-
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-
-                Discord
-              </a>
-            </li>
-
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-
-                X.com
-              </a>
-            </li>
-
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-
-                Bluesky
-              </a>
-            </li>
-
-          </ul>
-        </div>
-
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="spacer"></section>
-    </>
-  )
+      </footer>
+    </div>
+  );
 }
 
-export default App
+export default App;
