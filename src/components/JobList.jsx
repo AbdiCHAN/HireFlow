@@ -35,7 +35,7 @@ const jobs = [
     postedAt: 'Posted 2 days ago',
     description:
       'Support the product team by turning job data into clean reusable components.',
-    tags: ['React', 'Responsive UI'],
+    tags: ['Python', 'Responsive UI','Django'],
   },
 ]
 
