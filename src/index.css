@@ -1,85 +1,72 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap');
 
-/* ═══════════════════════════════════
-   DESIGN TOKENS
-═══════════════════════════════════ */
 :root {
-  --bg:           #F3F2EE;
-  --bg2:          #E9E5DC;
-  --surface:      #FFFFFF;
-  --surface2:     #F8F7F4;
-  --border:       #DDD8CF;
-  --border-dark:  #C5BFB4;
+  --bg:        #0A0A0F;
+  --bg2:       #0F0F16;
+  --bg3:       #13131C;
+  --surface:   #181824;
+  --surface2:  #1E1E2E;
+  --surface3:  #242438;
+  --border:    rgba(255,255,255,0.06);
+  --border2:   rgba(255,255,255,0.10);
+  --border3:   rgba(255,255,255,0.16);
 
-  --ink:          #1B1917;
-  --ink2:         #4A4540;
-  --ink3:         #7A7470;
-  --ink4:         #A09B94;
+  --violet:    #7C5CFC;
+  --violet-lt: #9B7DFF;
+  --violet-dk: #5A3DD8;
+  --violet-bg: rgba(124,92,252,0.12);
+  --violet-glow: rgba(124,92,252,0.20);
 
-  --brand:        #0A66C2;
-  --brand-lt:     #378FE9;
-  --brand-bg:     #EBF4FD;
-  --brand-dark:   #004182;
+  --green:     #10B981;
+  --green-bg:  rgba(16,185,129,0.12);
+  --amber:     #F59E0B;
+  --amber-bg:  rgba(245,158,11,0.12);
+  --cyan:      #06B6D4;
+  --cyan-bg:   rgba(6,182,212,0.12);
+  --rose:      #F43F5E;
+  --rose-bg:   rgba(244,63,94,0.10);
 
-  --green:        #057642;
-  --green-bg:     #E7F3EC;
-  --amber:        #B45309;
-  --amber-bg:     #FEF3C7;
-  --rose:         #B91C1C;
-  --rose-bg:      #FEE2E2;
-  --purple:       #6D28D9;
-  --purple-bg:    #EDE9FE;
+  --text:      #EEEDF5;
+  --text2:     #8E8BA8;
+  --text3:     #54516E;
+  --text4:     #312F4A;
 
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body:    'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'Manrope', sans-serif;
 
-  --r-sm:  6px;
-  --r-md:  10px;
-  --r-lg:  16px;
-  --r-xl:  22px;
-  --r-pill:999px;
+  --r-xs: 6px; --r-sm: 10px; --r-md: 14px;
+  --r-lg: 18px; --r-xl: 24px; --r-pill: 999px;
 
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
-  --shadow-md:  0 4px 16px rgba(0,0,0,.10);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,.12);
-  --shadow-hov: 0 6px 24px rgba(10,102,194,.18);
+  --shadow-sm:   0 2px 12px rgba(0,0,0,0.3);
+  --shadow-md:   0 4px 24px rgba(0,0,0,0.4);
+  --shadow-glow: 0 0 40px rgba(124,92,252,0.15);
 }
 
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-html { scroll-behavior:smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.6;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:15px;
+  line-height:1.65; min-height:100vh;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
 }
+#root{min-height:100vh;display:flex;flex-direction:column;}
+a{color:inherit;text-decoration:none;}
+button{font-family:var(--font-body);cursor:pointer;border:none;background:none;}
+input,select{font-family:var(--font-body);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:99px;}
+.container{width:90%;max-width:1200px;margin:0 auto;}
 
-#root { min-height:100vh; display:flex; flex-direction:column; }
-
-a { color:inherit; text-decoration:none; }
-button { font-family:var(--font-body); cursor:pointer; border:none; background:none; }
-input, select { font-family:var(--font-body); }
-
-::-webkit-scrollbar { width:5px; }
-::-webkit-scrollbar-track { background:var(--bg2); }
-::-webkit-scrollbar-thumb { background:var(--border-dark); border-radius:99px; }
-
-.container { width:92%; max-width:1180px; margin:0 auto; }
-
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(18px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-@keyframes shimmer {
-  from { background-position:-600px 0; }
-  to   { background-position:600px 0; }
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-@keyframes popIn {
-  from { opacity:0; transform:scale(.92); }
-  to   { opacity:1; transform:scale(1); }
-}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes floatA{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-14px) rotate(2deg);}}
+@keyframes floatB{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px) rotate(-2deg);}}
+@keyframes floatC{0%,100%{transform:translateY(0);}50%{transform:translateY(-18px);}}
+@keyframes shimmer{from{background-position:-600px 0;}to{background-position:600px 0;}}
+@keyframes elevate{0%{transform:translateY(0);}100%{transform:translateY(-50%);}}
+@keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(124,92,252,0.1);}50%{box-shadow:0 0 40px rgba(124,92,252,0.25);}}

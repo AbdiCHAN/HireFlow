@@ -1,21 +1,32 @@
 // src/pages/Home.jsx
-import { useState, useEffect, useMemo } from "react";
-import Filters  from "../components/Filters";
-import JobList  from "../components/JobList";
-import Loader   from "../components/Loader";
-import Error    from "../components/Error";
-import { fetchJobs, filterJobs, DEMO_JOBS } from "../services/api";
+import { useState, useEffect, useMemo, useRef } from "react";
+import Filters   from "../components/Filters";
+import JobList   from "../components/JobList";
+import Loader    from "../components/Loader";
+import Error     from "../components/Error";
+import { fetchJobs, filterJobs, DEMO_JOBS, LOGO_COLORS, normalizeType } from "../services/api";
 
-/* ── Top companies shown in right sidebar ── */
-const TOP_COMPANIES = [
-  { name:"Safaricom",   jobs:12, color:"#D1FAE5", text:"#065F46" },
-  { name:"Andela",      jobs:8,  color:"#DBEAFE", text:"#1D4ED8" },
-  { name:"M-Pesa",      jobs:6,  color:"#FEF3C7", text:"#92400E" },
-  { name:"Copia Global",jobs:4,  color:"#EDE9FE", text:"#5B21B6" },
-  { name:"Ajua",        jobs:3,  color:"#FCE7F3", text:"#9D174D" },
+/* Floating icons in hero */
+const FLOATS = ["🔵","⚙️","🌊","◎","⚡","💫"];
+
+/* WHY features */
+const FEATURES = [
+  { icon:"🎯", title:"Precision Matching",   text:"Our smart filters connect you to roles that fit your exact skills, location, and work-style preferences in seconds." },
+  { icon:"🌍", title:"Global Opportunities", text:"Browse thousands of remote and local positions from leading companies across Africa, Europe, and beyond." },
+  { icon:"⚡", title:"Apply Instantly",       text:"One-click applications with your saved profile. No re-entering details — just discover, click, and get hired." },
 ];
 
-function Home({ searchTerm, savedIds, onSave, onSelectJob }) {
+function getInitials(name="") {
+  return name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
+}
+
+function badgeLabel(type="") {
+  const t = normalizeType(type);
+  const map = {"full-time":"Full-time","contract":"Contract","part-time":"Part-time","freelance":"Freelance","remote":"Remote"};
+  return map[t] || type;
+}
+
+function Home({ searchTerm, setSearchTerm, savedIds, onSave, onSelectJob, onNavigate }) {
   const [allJobs,        setAllJobs]        = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState(null);
@@ -23,12 +34,11 @@ function Home({ searchTerm, savedIds, onSave, onSelectJob }) {
   const [activeCategory, setActiveCategory] = useState("All");
 
   const loadJobs = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      const jobs = await fetchJobs({ limit: 40 });
+      const jobs = await fetchJobs({ limit:40 });
       setAllJobs(jobs);
-    } catch (err) {
+    } catch(err) {
       setError(err.message);
       setAllJobs(DEMO_JOBS);
     } finally {
@@ -39,179 +49,214 @@ function Home({ searchTerm, savedIds, onSave, onSelectJob }) {
   useEffect(() => { loadJobs(); }, []);
 
   const filteredJobs = useMemo(
-    () => filterJobs(allJobs, { searchTerm, category: activeCategory, filterType }),
+    () => filterJobs(allJobs, { searchTerm, category:activeCategory, filterType }),
     [allJobs, searchTerm, activeCategory, filterType]
   );
 
   const stats = useMemo(() => ({
     total:     allJobs.length,
-    companies: new Set(allJobs.map(j => j.company)).size,
-    remote:    allJobs.filter(j => j.location?.toLowerCase().includes("remote")).length,
+    companies: new Set(allJobs.map(j=>j.company)).size,
+    remote:    allJobs.filter(j=>(j.location||"").toLowerCase().includes("remote")).length,
+    countries: 40,
   }), [allJobs]);
+
+  /* Elevator belt — duplicate jobs for seamless loop */
+  const elevatorJobs = useMemo(() => {
+    const src = allJobs.length > 0 ? allJobs.slice(0,8) : DEMO_JOBS.slice(0,8);
+    return [...src, ...src]; // duplicate for infinite scroll
+  }, [allJobs]);
+
+  const scrollToJobs = () =>
+    document.getElementById("jobs-anchor")?.scrollIntoView({ behavior:"smooth" });
 
   return (
     <>
-      {/* ══ HERO ══════════════════════════════════════ */}
+      {/* ════ HERO ══════════════════════════════════════════ */}
       <section className="hero">
+        <div className="hero__bg">
+          <div className="hero__radial"/>
+          <div className="hero__radial2"/>
+          <div className="hero__grid"/>
+        </div>
+        <div className="hero__arc hero__arc--1"/>
+        <div className="hero__arc hero__arc--2"/>
+        <div className="hero__arc hero__arc--3"/>
+
+        {FLOATS.map((emoji,i) => (
+          <div key={i} className={`hero__float hero__float--${i+1}`}>{emoji}</div>
+        ))}
+
         <div className="container">
           <div className="hero__content">
-            <span className="hero__tag">
-              <span className="hero__tag-dot" />
-              Live opportunities across Africa
-            </span>
-
-            <h1 className="hero__title">
-              Your next <em>developer</em><br />role starts here.
-            </h1>
-
-            <p className="hero__sub">
-              Browse curated tech jobs in Nairobi and beyond.<br />
-              No noise — just the right opportunity.
-            </p>
-
-            {/* Hero search box */}
-            <div className="hero__search-box">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09B94" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input
-                type="text"
-                placeholder="Job title, company, or skill…"
-                defaultValue={searchTerm}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter")
-                    document.getElementById("jobs-anchor")?.scrollIntoView({ behavior:"smooth" });
-                }}
-              />
-              <button
-                className="hero__search-btn"
-                onClick={() => document.getElementById("jobs-anchor")?.scrollIntoView({ behavior:"smooth" })}
-              >
-                Search Jobs
-              </button>
+            <div className="hero__pill">
+              <span className="hero__pill-new">NEW</span>
+              <span>The best job seekers</span>
+              <span className="hero__pill-sep"/>
+              <span className="hero__pill-link" onClick={scrollToJobs}>
+                Explore →
+              </span>
             </div>
 
-            {/* Stats */}
-            {!loading && (
-              <div className="hero__stats">
-                <div className="hero__stat">
-                  <div className="hero__stat-num">{stats.total}+</div>
-                  <div className="hero__stat-label">Open Roles</div>
-                </div>
-                <div className="hero__stat">
-                  <div className="hero__stat-num">{stats.companies}+</div>
-                  <div className="hero__stat-label">Companies</div>
-                </div>
-                <div className="hero__stat">
-                  <div className="hero__stat-num">{stats.remote}</div>
-                  <div className="hero__stat-label">Remote</div>
-                </div>
-              </div>
-            )}
+            <h1 className="hero__title">We know the way to success.</h1>
+            <h1 className="hero__title hero__title--dim">Find and become a professional.</h1>
+            <p className="hero__sub">A successful business needs a qualified team of people.</p>
+
+            <div className="hero__search">
+              <span className="hero__search-icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </span>
+              <input
+                type="text" placeholder="Job title"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={e => e.key==="Enter" && scrollToJobs()}
+              />
+              <button className="btn btn--white" onClick={scrollToJobs}>
+                Find Jobs →
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ══ 3-COLUMN LAYOUT ══════════════════════════ */}
-      <div id="jobs-anchor" />
-      <div className="container">
-        <div className="page-layout">
+      {/* ════ STATS ═════════════════════════════════════════ */}
+      {!loading && (
+        <div className="stats-bar">
+          <div className="container">
+            <div className="stats-bar__inner">
+              <div><div className="stats-bar__num">{stats.total}+</div><div className="stats-bar__label">Open Positions</div></div>
+              <div><div className="stats-bar__num">{stats.companies}+</div><div className="stats-bar__label">Companies Hiring</div></div>
+              <div><div className="stats-bar__num">{stats.remote}</div><div className="stats-bar__label">Remote Jobs</div></div>
+              <div><div className="stats-bar__num">{stats.countries}+</div><div className="stats-bar__label">Countries</div></div>
+            </div>
+          </div>
+        </div>
+      )}
 
-          {/* LEFT sidebar */}
-          <aside className="page-layout__left">
-            <div className="sidebar-card">
-              <div className="sidebar-card__banner" />
-              <div className="sidebar-card__profile">
-                <div className="sidebar-card__avatar">A</div>
-                <p className="sidebar-card__name">Athanas Dev</p>
-                <p className="sidebar-card__role">Full-stack Developer</p>
-                <div className="sidebar-card__divider" />
-                <div className="sidebar-card__stat-row">
-                  <span className="sidebar-card__stat-label">Profile views</span>
-                  <span className="sidebar-card__stat-val">142</span>
-                </div>
-                <div className="sidebar-card__stat-row">
-                  <span className="sidebar-card__stat-label">Applications</span>
-                  <span className="sidebar-card__stat-val">7</span>
-                </div>
-                <div className="sidebar-card__stat-row">
-                  <span className="sidebar-card__stat-label">Saved jobs</span>
-                  <span className="sidebar-card__stat-val">{savedIds?.size || 0}</span>
+      {/* ════ ABOUT + ELEVATOR ══════════════════════════════ */}
+      <section className="about">
+        <div className="container">
+          <div className="about__grid">
+            {/* Left */}
+            <div>
+              <p className="about__eyebrow">ABOUT HIREFLOW</p>
+              <h2 className="about__title">One step to your</h2>
+              <h2 className="about__title about__title--dim">future starts here</h2>
+              <p className="about__body">
+                Receive a customized salary approximation based on your profile.
+                Access reviews for more than 600,000 companies worldwide and land
+                your next role faster than ever.
+              </p>
+              <button className="btn btn--outline" onClick={() => onNavigate("about")}>
+                Learn More
+              </button>
+            </div>
+
+            {/* Right — Elevator panel */}
+            <div className="elevator-panel">
+              <div className="elevator-panel__header">
+                <span className="elevator-panel__label">Jobs</span>
+                <span className="elevator-panel__link" onClick={scrollToJobs}>All Jobs →</span>
+              </div>
+              <div className="elevator-panel__track">
+                <div className="elevator-panel__belt">
+                  {elevatorJobs.map((job, i) => {
+                    const lc = LOGO_COLORS[job.id % LOGO_COLORS.length];
+                    return (
+                      <div
+                        key={`${job.id}-${i}`}
+                        className="elevator-row"
+                        onClick={() => onSelectJob(job)}
+                      >
+                        <div>
+                          <p className="elevator-row__title">{job.title}</p>
+                          <div className="elevator-row__meta">
+                            <span className="elevator-row__chip">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10A15 15 0 0 1 12 2z"/></svg>
+                              {job.location}
+                            </span>
+                            <span className="elevator-row__chip">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                              {badgeLabel(job.jobType)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="elevator-row__right">
+                          {job.salary && <span className="elevator-row__salary">{job.salary}</span>}
+                          <button
+                            className="elevator-row__apply"
+                            onClick={e => { e.stopPropagation(); onSelectJob(job); }}
+                          >Apply</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-
-            {/* Quick nav */}
-            <ul className="sidebar-menu" style={{ marginTop:12, background:"var(--surface)", borderRadius:"var(--r-lg)", border:"1px solid var(--border)", boxShadow:"var(--shadow-sm)" }}>
-              {[
-                ["🏠", "Home"],
-                ["💼", "My Jobs"],
-                ["🔔", "Job Alerts"],
-                ["📄", "My Resume"],
-                ["⚙️",  "Settings"],
-              ].map(([icon, label]) => (
-                <li key={label} className={label === "Home" ? "active" : ""}>
-                  <span>{icon}</span> {label}
-                </li>
-              ))}
-            </ul>
-          </aside>
-
-          {/* MAIN: filter bar + job list */}
-          <main className="page-layout__main">
-            <Filters
-              filterType={filterType}
-              setFilterType={setFilterType}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-              totalCount={filteredJobs.length}
-            />
-
-            {loading  && <Loader />}
-            {!loading && error && <Error message={error} onRetry={loadJobs} />}
-            {!loading && (
-              <JobList
-                jobs={filteredJobs}
-                savedIds={savedIds}
-                onSave={onSave}
-                onSelect={onSelectJob}
-              />
-            )}
-          </main>
-
-          {/* RIGHT sidebar */}
-          <aside className="page-layout__right">
-            {/* Insight promo card */}
-            <div className="insight-card">
-              <p className="insight-card__label">Pro Tip</p>
-              <p className="insight-card__title">Get noticed faster</p>
-              <p className="insight-card__sub">Complete your profile to appear in recruiter searches and get matched to relevant roles.</p>
-              <button className="insight-card__btn">Complete Profile</button>
-            </div>
-
-            {/* Top companies */}
-            <div className="promo-card">
-              <p className="promo-card__title">Top Hiring Companies</p>
-              {TOP_COMPANIES.map((c) => (
-                <div className="company-item" key={c.name}>
-                  <div
-                    className="company-item__logo"
-                    style={{ background: c.color, color: c.text }}
-                  >
-                    {c.name[0]}
-                  </div>
-                  <div>
-                    <p className="company-item__name">{c.name}</p>
-                    <p className="company-item__jobs">{c.jobs} open roles</p>
-                  </div>
-                  <button className="company-item__follow">Follow</button>
-                </div>
-              ))}
-            </div>
-          </aside>
-
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* ════ WHY HIREFLOW ══════════════════════════════════ */}
+      <section className="why">
+        <div className="container">
+          <p className="why__eyebrow">WHY HIREFLOW</p>
+          <h2 className="why__title">New way to get a job</h2>
+          <p className="why__sub">
+            Upon gaining entry to the HireFlow platform, your initial task involves
+            discovering the perfect role and applying in seconds.
+          </p>
+          <div className="why__features">
+            {FEATURES.map(f => (
+              <div className="why__feature" key={f.title}>
+                <div className="why__feature-icon">{f.icon}</div>
+                <h3 className="why__feature-title">{f.title}</h3>
+                <p className="why__feature-text">{f.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════ JOB LISTINGS ══════════════════════════════════ */}
+      <div id="jobs-anchor"/>
+      <section className="jobs-section">
+        <div className="container">
+          <div className="jobs-section__header">
+            <div>
+              <h2 className="jobs-section__title">Available Jobs</h2>
+              {!loading && (
+                <p className="jobs-section__count">
+                  {filteredJobs.length} position{filteredJobs.length !== 1 ? "s" : ""} found
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Filters
+            filterType={filterType} setFilterType={setFilterType}
+            activeCategory={activeCategory} setActiveCategory={setActiveCategory}
+          />
+
+          {loading && <Loader/>}
+
+          {!loading && error && (
+            <div className="jobs-grid">
+              <Error message={error} onRetry={loadJobs}/>
+            </div>
+          )}
+
+          {!loading && (
+            <JobList
+              jobs={filteredJobs} savedIds={savedIds}
+              onSave={onSave} onSelect={onSelectJob}
+            />
+          )}
+        </div>
+      </section>
     </>
   );
 }

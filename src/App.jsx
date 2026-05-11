@@ -18,14 +18,19 @@ function App() {
     });
   };
 
+  const scrollToJobs = () => {
+    setSelectedJob(null);
+    setTimeout(() => {
+      document.getElementById("jobs-section")?.scrollIntoView({ behavior:"smooth" });
+    }, 50);
+  };
+
   return (
     <div className="app">
       <Navbar
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        savedCount={savedIds.size}
         onHomeClick={() => setSelectedJob(null)}
-        onSavedClick={() => setSelectedJob(null)}
+        onJobsClick={scrollToJobs}
+        savedCount={savedIds.size}
       />
 
       <div className="app__body">
@@ -39,6 +44,7 @@ function App() {
         ) : (
           <Home
             searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
             savedIds={savedIds}
             onSave={handleSave}
             onSelectJob={setSelectedJob}
@@ -48,7 +54,7 @@ function App() {
 
       <footer className="footer">
         <div className="container">
-          Built with <strong>HireFlow</strong> · Connecting developers with opportunities across Africa &amp; beyond
+          © 2025 <strong>Job Board</strong> · Find and become a professional.
         </div>
       </footer>
     </div>

@@ -1,82 +1,75 @@
 // src/components/JobCard.jsx
+import { LOGO_COLORS, normalizeType } from "../services/api";
 
-const LOGO_PALETTE = [
-  { bg: "#DBEAFE", color: "#1D4ED8" },
-  { bg: "#D1FAE5", color: "#065F46" },
-  { bg: "#FEF3C7", color: "#92400E" },
-  { bg: "#EDE9FE", color: "#5B21B6" },
-  { bg: "#FCE7F3", color: "#9D174D" },
-  { bg: "#CFFAFE", color: "#164E63" },
-  { bg: "#FEE2E2", color: "#991B1B" },
-];
-
-function getInitials(name = "") {
-  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
-
-function getLogo(id) { return LOGO_PALETTE[id % LOGO_PALETTE.length]; }
-
-function badgeClass(type = "") {
-  const t = type.toLowerCase();
-  if (t.includes("full"))     return "badge--full";
-  if (t.includes("contract")) return "badge--contract";
-  if (t.includes("part"))     return "badge--part";
+function badgeClass(type="") {
+  const t = normalizeType(type);
+  if (t === "full-time")  return "badge--full";
+  if (t === "contract")   return "badge--contract";
+  if (t === "part-time")  return "badge--part";
+  if (t === "freelance")  return "badge--freelance";
   return "badge--remote";
 }
 
-/* ── icons ── */
+function badgeLabel(type="") {
+  const t = normalizeType(type);
+  const map = {"full-time":"Full-time","contract":"Contract","part-time":"Part-time","freelance":"Freelance","remote":"Remote"};
+  return map[t] || type;
+}
+
 function MapPin() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 }
-function Clock() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+function Home2() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>;
+}
+function Dollar() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
 }
 function Heart({ filled }) {
   return filled
-    ? <svg width="17" height="17" viewBox="0 0 24 24" fill="#B91C1C" stroke="#B91C1C" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    : <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
+    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="#F43F5E" stroke="#F43F5E" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
 }
 
-function JobCard({ job, isSaved, onSave, onSelect, animDelay = 0 }) {
-  const logo    = getLogo(job.id);
-  const jobType = job.jobType || job.type || "Full-time";
+function getInitials(name="") {
+  return name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
+}
+
+function JobCard({ job, isSaved, onSave, onSelect, animDelay=0 }) {
+  const lc  = LOGO_COLORS[job.id % LOGO_COLORS.length];
+  const type = job.jobType || "full-time";
 
   return (
     <div
-      className={`job-card ${job.featured ? "job-card--featured" : ""}`}
-      style={{ animationDelay: `${animDelay}s` }}
+      className="job-card"
+      style={{ animationDelay:`${animDelay}s` }}
       onClick={() => onSelect?.(job)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onSelect?.(job)}
+      role="button" tabIndex={0}
+      onKeyDown={e => e.key==="Enter" && onSelect?.(job)}
     >
-      {/* Top row: logo + info + save */}
       <div className="job-card__top">
-        <div className="job-card__logo" style={{ background: logo.bg, color: logo.color }}>
+        <div className="job-card__left">
+          {/* Company logo */}
           {job.companyLogo
-            ? <img src={job.companyLogo} alt={job.company} />
-            : getInitials(job.company)
+            ? <div className="job-card__logo"><img src={job.companyLogo} alt={job.company} /></div>
+            : <div className="job-card__logo-text" style={{background:lc.bg,color:lc.color}}>{getInitials(job.company)}</div>
           }
+          <div>
+            <p className="job-card__company">{job.company}</p>
+            <h3 className="job-card__title">{job.title}</h3>
+          </div>
         </div>
 
-        <div className="job-card__info">
-          <h3 className="job-card__title">{job.title}</h3>
-          <p className="job-card__company">{job.company}</p>
-          <p className="job-card__location">
-            <MapPin /> {job.location}
-          </p>
-        </div>
-
-        <div className="job-card__actions">
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
           <button
-            className={`job-card__save ${isSaved ? "job-card__save--active" : ""}`}
-            onClick={(e) => { e.stopPropagation(); onSave?.(job.id); }}
-            aria-label={isSaved ? "Unsave job" : "Save job"}
-          >
-            <Heart filled={isSaved} />
-          </button>
-          {job.featured && <span className="badge badge--featured">★ Featured</span>}
-          <span className={`badge ${badgeClass(jobType)}`}>{jobType}</span>
+            className="job-card__apply"
+            onClick={e => { e.stopPropagation(); onSelect?.(job); }}
+          >Apply</button>
+          <button
+            style={{background:"none",border:"none",cursor:"pointer",color:isSaved?"#F43F5E":"var(--text3)",padding:4,transition:"color .2s"}}
+            onClick={e => { e.stopPropagation(); onSave?.(job.id); }}
+            aria-label={isSaved?"Unsave":"Save"}
+          ><Heart filled={isSaved}/></button>
         </div>
       </div>
 
@@ -86,24 +79,18 @@ function JobCard({ job, isSaved, onSave, onSelect, animDelay = 0 }) {
       {/* Tags */}
       {job.tags?.length > 0 && (
         <div className="job-card__tags">
-          {job.tags.slice(0, 5).map((tag) => (
-            <span className="job-card__tag" key={tag}>{tag}</span>
-          ))}
+          {job.tags.map(tag => <span className="job-card__tag" key={tag}>{tag}</span>)}
         </div>
       )}
 
+      <div className="job-card__divider" />
+
       {/* Footer */}
       <div className="job-card__footer">
-        <div className="job-card__meta">
-          <span className="job-card__meta-item"><Clock /> {job.postedAt || job.publicationDate || "Recently"}</span>
-          {job.salary && <span className="job-card__salary">{job.salary}</span>}
-        </div>
-        <button
-          className="job-card__apply"
-          onClick={(e) => { e.stopPropagation(); onSelect?.(job); }}
-        >
-          View Job
-        </button>
+        <span className="job-card__meta"><MapPin /> {job.location}</span>
+        <span className="job-card__meta"><Home2 /> {badgeLabel(type)}</span>
+        {job.salary && <span className="job-card__salary"><Dollar />{job.salary}</span>}
+        <span className={`badge ${badgeClass(type)}`} style={{marginLeft:"auto"}}>{badgeLabel(type)}</span>
       </div>
     </div>
   );
