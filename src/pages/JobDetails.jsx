@@ -1,5 +1,5 @@
 // src/pages/JobDetails.jsx
-import { LOGO_COLORS, normalizeType } from "../services/api";
+import { LOGO_COLORS, normalizeType } from "../../backend/services/api";
 
 function getInitials(n=""){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function badgeLabel(t=""){

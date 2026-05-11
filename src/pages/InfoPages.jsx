@@ -1,5 +1,4 @@
 // src/pages/InfoPage.jsx
-import { CATEGORIES } from "../components/Filters";
 
 /* ─── Reusable section wrapper ─── */
 function Section({ title, sub, children }) {
@@ -7,7 +6,7 @@ function Section({ title, sub, children }) {
     <div style={{ padding:"60px 0 100px" }}>
       <div className="container">
         <div style={{ textAlign:"center", marginBottom:48, animation:"fadeUp .5s ease both" }}>
-          <h1 style={{ fontFamily:"var(--font-display)", fontSize:"clamp(28px,4vw,48px)", fontWeight:800, letterSpacing:"-1.5px", color:"var(--text)", marginBottom:12 }}>{title}</h1>
+          <h1 style={{ fontFamily:"var(--font-display)", fontSize:44, fontWeight:800, letterSpacing:0, color:"var(--text)", marginBottom:12 }}>{title}</h1>
           {sub && <p style={{ fontSize:16, color:"var(--text2)", maxWidth:500, margin:"0 auto", lineHeight:1.7 }}>{sub}</p>}
         </div>
         {children}
@@ -135,7 +134,7 @@ export function NewsPage() {
 }
 
 /* ─── POST JOB PAGE ─── */
-export function PostJobPage({ onNavigate }) {
+export function PostJobPage() {
   return (
     <Section title="Post a Job" sub="Reach thousands of qualified candidates across Africa and beyond.">
       <div style={{ maxWidth:560, margin:"0 auto", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--r-xl)", padding:"36px", animation:"fadeUp .4s ease both" }}>
@@ -181,7 +180,7 @@ export function PostJobPage({ onNavigate }) {
 }
 
 /* ─── CV POST PAGE ─── */
-export function CVPostPage({ onNavigate }) {
+export function CVPostPage() {
   return (
     <Section title="Upload Your CV" sub="Let companies find you. Upload your CV and get discovered by top recruiters.">
       <div style={{ maxWidth:520, margin:"0 auto", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--r-xl)", padding:"36px", animation:"fadeUp .4s ease both" }}>

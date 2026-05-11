@@ -1,6 +1,6 @@
 // src/components/Filters.jsx
 
-export const CATEGORIES = [
+const CATEGORIES = [
   { value:"All",         label:"View all" },
   { value:"digital",     label:"Digital" },
   { value:"engineering", label:"Engineering" },
@@ -11,7 +11,7 @@ export const CATEGORIES = [
   { value:"development", label:"Development" },
 ];
 
-export const JOB_TYPES = [
+const JOB_TYPES = [
   { value:"",          label:"All Types" },
   { value:"full-time", label:"Full-time" },
   { value:"contract",  label:"Contract" },
