@@ -6,10 +6,7 @@ export default defineConfig(({ command }) => {
 
   return {
     plugins: [react()],
-
-    // Use / locally, but /HireFlow2/ when building for GitHub Pages
     base: isBuild ? "/HireFlow2/" : "/",
-
     server: {
       port: 5173,
       strictPort: true,
