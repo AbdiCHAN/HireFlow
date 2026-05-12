@@ -1,5 +1,3 @@
-// src/services/api.js
-
 const REMOTIVE_API_URL = "https://remotive.com/api/remote-jobs";
 const DEFAULT_TIMEOUT = 12000;
 
