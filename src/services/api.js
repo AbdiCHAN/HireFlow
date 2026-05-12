@@ -3,9 +3,10 @@
 const REMOTIVE_API_URL = "https://remotive.com/api/remote-jobs";
 const DEFAULT_TIMEOUT = 12000;
 
-// Optional future backend URL.
-// For now, GitHub Pages can still work because this file falls back to Remotive + demo jobs.
-const CUSTOM_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+// Backend proxy integration:
+// - In development, Vite proxies `/api` to the local backend server.
+// - In production, this will fall back to Remotive if the backend is unavailable.
+const CUSTOM_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/";
 
 const safeText = (value, fallback = "") => {
   if (value === undefined || value === null) return fallback;

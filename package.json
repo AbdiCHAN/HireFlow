@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
+    "dev": "node dev/start-dev.js",
     "dev:client": "vite",
     "dev:server": "node backend/server.js",
     "server": "node backend/server.js",

@@ -8,8 +8,6 @@ export default defineConfig(({ command }) => {
     plugins: [react()],
     base: isBuild ? "/HireFlow2/" : "/",
     server: {
-      port: 5173,
-      strictPort: true,
       open: true,
     },
   };
