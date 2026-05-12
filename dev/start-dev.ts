@@ -23,7 +23,7 @@ const run = async () => {
 
     const serverEnv = { ...process.env, PORT: String(backendPort) };
 
-    const backend = spawn("node", ["backend/server.js"], {
+    const backend = spawn("ts-node", ["backend/server.ts"], {
       env: serverEnv,
       stdio: "inherit",
     });
@@ -35,14 +35,13 @@ const run = async () => {
       for (let i = 0; i < retries; i++) {
         try {
           const controller = new AbortController();
-          const id = setTimeout(() => controller.abort(), 2000);
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
           const res = await fetch(healthUrl, { signal: controller.signal });
-          clearTimeout(id);
+          clearTimeout(timeoutId);
           if (res.ok) return true;
-        } catch (e) {
+        } catch {
           // ignore and retry
         }
-        // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => setTimeout(r, delay));
       }
       return false;
@@ -70,10 +69,14 @@ const run = async () => {
     const cleanup = () => {
       try {
         backend.kill();
-      } catch (e) {}
+      } catch {
+        // Ignore errors during cleanup
+      }
       try {
         client.kill();
-      } catch (e) {}
+      } catch {
+        // Ignore errors during cleanup
+      }
       process.exit(0);
     };
 

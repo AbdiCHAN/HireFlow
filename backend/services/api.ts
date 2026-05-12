@@ -38,11 +38,6 @@ const normalizeType = (type = "") => {
   return value || "remote";
 };
 
-const mapCategory = (category = "", title = "", tags = []) => {
-  if (!category) return "General";
-  return safeText(category);
-};
-
 const formatDate = (value) => {
   if (!value) return "";
   const d = new Date(value);
@@ -50,7 +45,7 @@ const formatDate = (value) => {
   return d.toDateString();
 };
 
-const normalizeJob = (job = {}) => {
+const normalizeJob = (job: any = {}) => {
   const fullDescription = stripHtml(
     job.fullDescription || job.description || job.description_text || ""
   );
@@ -89,7 +84,7 @@ const normalizeJob = (job = {}) => {
   };
 };
 
-const getJobsArrayFromResponse = (data) => {
+const getJobsArrayFromResponse = (data: any) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.jobs)) return data.jobs;
   if (Array.isArray(data?.data)) return data.data;
@@ -107,7 +102,15 @@ const buildQueryString = (params = {}) => {
   return searchParams.toString() ? `?${searchParams.toString()}` : "";
 };
 
-export const fetchJobs = async ({ search = "", category = "", limit = 40 } = {}) => {
+export const fetchJobs = async ({
+  search = "",
+  category = "",
+  limit = 40
+}: {
+  search?: string;
+  category?: string;
+  limit?: number | string;
+} = {}) => {
   const qs = buildQueryString({ search, category, limit });
   const url = `${REMOTIVE_API_URL}${qs}`;
 
@@ -119,7 +122,7 @@ export const fetchJobs = async ({ search = "", category = "", limit = 40 } = {})
   return jobs;
 };
 
-export const fetchJobById = async (id) => {
+export const fetchJobById = async (id: string | number) => {
   if (!id) return null;
   const jobs = await fetchJobs({ limit: 500 });
   return jobs.find((j) => String(j.id) === String(id)) || null;

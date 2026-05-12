@@ -3,7 +3,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
-import { fetchJobs, fetchJobById } from "./services/api.js";
+import { fetchJobs, fetchJobById } from "./services/api.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,9 +12,6 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 0;
 
 app.use(cors());
 app.use(express.json());
-
-
-// The backend data fetching and normalization lives in `backend/services/api.js`
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
@@ -32,7 +29,7 @@ app.get("/api/jobs", async (req, res) => {
   } catch (error) {
     console.error("/api/jobs error:", error);
     return res.status(502).json({
-      error: error.message || "Unable to fetch jobs from backend.",
+      error: error instanceof Error ? error.message : "Unable to fetch jobs from backend.",
     });
   }
 });
@@ -55,7 +52,7 @@ app.get("/api/jobs/:id", async (req, res) => {
   } catch (error) {
     console.error("/api/jobs/:id error:", error);
     return res.status(502).json({
-      error: error.message || "Unable to fetch job details from backend.",
+      error: error instanceof Error ? error.message : "Unable to fetch job details from backend.",
     });
   }
 });
@@ -71,7 +68,6 @@ if (existsSync(distPath)) {
 }
 
 const server = app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
   const addr = server.address();
   const port = addr && typeof addr === "object" ? addr.port : PORT;
   console.log(`Backend server running on http://localhost:${port}`);

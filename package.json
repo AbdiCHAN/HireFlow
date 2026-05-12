@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node dev/start-dev.js",
+    "dev": "ts-node dev/start-dev.ts",
     "dev:client": "vite",
-    "dev:server": "node backend/server.js",
-    "server": "node backend/server.js",
+    "dev:server": "ts-node backend/server.ts",
+    "server": "ts-node backend/server.ts",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -23,8 +23,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/cors": "^2.8.19",
+    "@types/dotenv": "^6.1.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.7.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "eslint": "^10.2.1",
@@ -32,6 +38,8 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "gh-pages": "^6.3.0",
     "globals": "^17.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3",
     "vite": "^8.0.10"
   },
   "homepage": "https://abdichan.github.io/HireFlow2/"
