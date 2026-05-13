@@ -10,7 +10,9 @@ import {
   NewsPage,
   PostJobPage,
 } from "./pages/InfoPages";
-import { LoginPage, RegisterPage } from "./pages/AuthPages";
+import LoginPage from "./pages/Login";
+import SignupPage from "./pages/Signup";
+import AdminDashboard from "./pages/AdminDashboard";
 import "./App.css";
 
 const VALID_PAGES = new Set([
@@ -23,12 +25,15 @@ const VALID_PAGES = new Set([
   "post-job",
   "cv-post",
   "login",
+  "signup",
   "register",
+  "admin",
 ]);
 
 const SAVED_JOBS_KEY = "hireflow_saved_jobs";
 
 function getSafePage(page) {
+  if (page === "register") return "signup";
   return VALID_PAGES.has(page) ? page : "home";
 }
 
@@ -166,6 +171,7 @@ function App() {
           onBack={handleBackToJobs}
           isSaved={savedIds.has(selectedJob.id)}
           onSave={handleSave}
+          onNavigate={handleNavigate}
         />
       );
     }
@@ -194,11 +200,14 @@ function App() {
       case "login":
         return <LoginPage onNavigate={handleNavigate} />;
 
-      case "register":
-        return <RegisterPage onNavigate={handleNavigate} />;
+      case "signup":
+        return <SignupPage onNavigate={handleNavigate} />;
 
       case "cv-post":
         return <CVPostPage onNavigate={handleNavigate} />;
+
+      case "admin":
+        return <AdminDashboard onNavigate={handleNavigate} />;
 
       case "home":
       case "jobs":

@@ -7,15 +7,25 @@ import { authenticateToken } from '../middleware/auth.ts';
 const router = Router();
 let userModel: UserModel;
 
+const ALLOWED_ROLES = new Set(['job_seeker', 'employer', 'admin']);
 
 export function setUserModel(db: any) {
   userModel = UserModel.create(db);
 }
 
+const normalizeRole = (role: any, userType?: any) => {
+  if (role === 'recruiter' || userType === 'recruiter') return 'employer';
+  if (role === 'candidate' || userType === 'candidate') return 'job_seeker';
+  if (ALLOWED_ROLES.has(role)) return role;
+  return 'job_seeker';
+};
 
-router.post('/register', async (req, res) => {
+const registerUser = async (req: any, res: any) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { email, password, role, userType } = req.body;
+    const username = req.body.username || req.body.fullName;
+    const normalizedRole = normalizeRole(role, userType);
+
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required' });
     }
@@ -38,7 +48,7 @@ router.post('/register', async (req, res) => {
       username,
       email,
       passwordHash,
-      role: role || 'job_seeker'
+      role: normalizedRole
     });
 
     
@@ -67,7 +77,10 @@ router.post('/register', async (req, res) => {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+};
+
+router.post('/register', registerUser);
+router.post('/signup', registerUser);
 
 router.post('/login', async (req, res) => {
   try {

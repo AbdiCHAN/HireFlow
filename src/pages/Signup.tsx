@@ -45,7 +45,7 @@ function SignupPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [userType, setUserType] = useState<"recruiter" | "candidate">("candidate");
+  const [userType, setUserType] = useState<"recruiter" | "candidate" | "admin">("candidate");
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
@@ -389,11 +389,12 @@ function SignupPage({ onNavigate }: { onNavigate: (page: string) => void }) {
               {[
                 { value: "candidate", label: "Job Seeker", icon: "👤" },
                 { value: "recruiter", label: "Recruiter", icon: "🏢" },
+                { value: "admin", label: "Admin", icon: "▣" },
               ].map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setUserType(option.value as "recruiter" | "candidate")}
+                  onClick={() => setUserType(option.value as "recruiter" | "candidate" | "admin")}
                   style={{
                     flex: 1,
                     padding: "12px 14px",

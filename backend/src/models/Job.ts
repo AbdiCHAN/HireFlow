@@ -159,7 +159,7 @@ export class JobModel {
 
   async delete(id: number): Promise<boolean> {
     const result = await this.db.run(`DELETE FROM jobs WHERE id = ?`, [id]);
-    return result.changes > 0;
+    return (result.changes || 0) > 0;
   }
 
   async list(options: {

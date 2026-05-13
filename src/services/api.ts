@@ -6,7 +6,23 @@ const DEFAULT_TIMEOUT = 12000;
 // Backend proxy integration:
 // - In development, Vite proxies `/api` to the local backend server.
 // - In production, this will fall back to Remotive if the backend is unavailable.
-const CUSTOM_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+export const TOKEN_KEY = "authToken";
+export const USER_KEY = "authUser";
+
+export const apiUrl = (path = "") => {
+  const safePath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${safePath}`;
+};
+
+export const getAuthToken = () => {
+  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem("hireflow_auth_token");
+};
+
+export const authHeaders = () => {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const safeText = (value, fallback = "") => {
   if (value === undefined || value === null) return fallback;
@@ -74,6 +90,34 @@ export const normalizeType = (type = "") => {
   if (value.includes("remote")) return "remote";
 
   return value || "remote";
+};
+
+export const normalizeTags = (tags = []) => {
+  if (Array.isArray(tags)) {
+    return tags.map(String).filter(Boolean).slice(0, 8);
+  }
+
+  if (typeof tags === "string") {
+    const trimmed = tags.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.map(String).filter(Boolean).slice(0, 8);
+      }
+    } catch {
+      // Fall through to comma-separated parsing.
+    }
+
+    return trimmed
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .slice(0, 8);
+  }
+
+  return [];
 };
 
 export const LOGO_COLORS = [
@@ -404,7 +448,7 @@ const normalizeJob = (job = {}) => {
 
   const title = safeText(job.title, "Untitled Job");
   const company = safeText(job.company || job.company_name, "Unknown Company");
-  const tags = Array.isArray(job.tags) ? job.tags.slice(0, 5) : [];
+  const tags = normalizeTags(job.tags).slice(0, 5);
   const rawCategory = safeText(job.rawCategory || job.category, "General");
 
   return {
@@ -476,6 +520,25 @@ const fetchFromUrl = async (url, timeout = DEFAULT_TIMEOUT) => {
   }
 };
 
+export const readApiError = async (response, fallback = "Request failed") => {
+  try {
+    const data = await response.json();
+    return data?.error || data?.message || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+export const apiRequest = async (path, options = {}) => {
+  const response = await fetch(apiUrl(path), options);
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response));
+  }
+
+  return response.json();
+};
+
 const buildJobsUrl = ({ baseUrl, search = "", category = "", limit = 40 }) => {
   const isRemotive = baseUrl.includes("remotive.com");
 
@@ -504,29 +567,20 @@ export const fetchJobs = async ({
 } = {}) => {
   const finalSearch = search || searchTerm;
 
-  const urls = CUSTOM_API_BASE_URL
-    ? [
-        buildJobsUrl({
-          baseUrl: `${CUSTOM_API_BASE_URL.replace(/\/$/, "")}/api/jobs`,
-          search: finalSearch,
-          category,
-          limit,
-        }),
-        buildJobsUrl({
-          baseUrl: REMOTIVE_API_URL,
-          search: finalSearch,
-          category,
-          limit,
-        }),
-      ]
-    : [
-        buildJobsUrl({
-          baseUrl: REMOTIVE_API_URL,
-          search: finalSearch,
-          category,
-          limit,
-        }),
-      ];
+  const urls = [
+    buildJobsUrl({
+      baseUrl: apiUrl("/api/jobs"),
+      search: finalSearch,
+      category,
+      limit,
+    }),
+    buildJobsUrl({
+      baseUrl: REMOTIVE_API_URL,
+      search: finalSearch,
+      category,
+      limit,
+    }),
+  ];
 
   for (const url of urls) {
     try {
@@ -562,7 +616,7 @@ export const filterJobs = (
     const jobCategory = safeText(job.category).toLowerCase();
     const jobType = normalizeType(job.jobType || job.type);
     const description = safeText(job.description).toLowerCase();
-    const tags = Array.isArray(job.tags) ? job.tags : [];
+    const tags = normalizeTags(job.tags);
 
     const matchesSearch =
       !query ||
@@ -631,16 +685,11 @@ export const fetchJobById = async (id) => {
 
   const demoJob = getJobById(id);
 
-  if (CUSTOM_API_BASE_URL) {
-    try {
-      const data = await fetchFromUrl(
-        `${CUSTOM_API_BASE_URL.replace(/\/$/, "")}/api/jobs/${id}`
-      );
-
-      if (data?.data) return normalizeJob(data.data);
-    } catch {
-      // Fall back below.
-    }
+  try {
+    const data = await fetchFromUrl(apiUrl(`/api/jobs/${id}`));
+    if (data?.data) return normalizeJob(data.data);
+  } catch {
+    // Fall back below.
   }
 
   return demoJob;

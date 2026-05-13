@@ -99,7 +99,7 @@ export class UserModel {
 
   async delete(id: number): Promise<boolean> {
     const result = await this.db.run(`DELETE FROM users WHERE id = ?`, [id]);
-    return result.changes > 0;
+    return (result.changes || 0) > 0;
   }
 
   async list(): Promise<User[]> {

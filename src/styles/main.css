@@ -87,6 +87,16 @@
   margin-left: auto;
 }
 
+.navbar__user {
+  max-width: 120px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .navbar__saved {
   position: relative;
   width: 40px;

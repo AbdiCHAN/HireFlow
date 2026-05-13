@@ -118,6 +118,23 @@ export async function initializeDB(db: Database) {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS job_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      job_id INTEGER NOT NULL,
+      cv_id INTEGER,
+      cover_note TEXT,
+      status TEXT NOT NULL DEFAULT 'submitted',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, job_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+      FOREIGN KEY (cv_id) REFERENCES cvs(id) ON DELETE SET NULL
+    )
+  `);
+
   
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs(source);
@@ -127,6 +144,9 @@ export async function initializeDB(db: Database) {
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_cvs_user_id ON cvs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_job_applications_user_id ON job_applications(user_id);
+    CREATE INDEX IF NOT EXISTS idx_job_applications_job_id ON job_applications(job_id);
+    CREATE INDEX IF NOT EXISTS idx_job_applications_status ON job_applications(status);
   `);
 
   console.log('Database initialized successfully');

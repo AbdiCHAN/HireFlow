@@ -8,9 +8,13 @@ import { connectDB, initializeDB } from "./src/config/database.ts";
 import { setUserModel } from "./src/routes/auth.ts";
 import { setJobModel } from "./src/routes/jobs.ts";
 import { setCVModel } from "./src/routes/cv.ts";
+import { setApplicationModels } from "./src/routes/applications.ts";
+import { setAdminModels } from "./src/routes/admin.ts";
 import authRoutes from "./src/routes/auth.ts";
 import jobRoutes from "./src/routes/jobs.ts";
 import cvRoutes from "./src/routes/cv.ts";
+import applicationRoutes from "./src/routes/applications.ts";
+import adminRoutes from "./src/routes/admin.ts";
 
 dotenv.config();
 
@@ -39,11 +43,15 @@ const startServer = async () => {
     setUserModel(db);
     setJobModel(db);
     setCVModel(db);
+    setApplicationModels(db);
+    setAdminModels(db);
 
     // Routes
     app.use("/api/auth", authRoutes);
     app.use("/api/jobs", jobRoutes);
     app.use("/api/cv", cvRoutes);
+    app.use("/api/applications", applicationRoutes);
+    app.use("/api/admin", adminRoutes);
 
     // Health check
     app.get("/health", (req, res) => {

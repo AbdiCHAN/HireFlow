@@ -97,40 +97,6 @@ function getLogoColor(job = {}) {
   );
 }
 
-function getApiApplyUrl(job = {}) {
-  if (!job.id) return null;
-
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
-
-  if (apiBaseUrl) {
-    return `${apiBaseUrl.replace(/\/$/, "")}/api/jobs/${job.id}`;
-  }
-
-  const isLocalhost =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
-
-  if (isLocalhost) {
-    return `/api/jobs/${job.id}`;
-  }
-
-  return null;
-}
-
-function createApplyUrl(job = {}) {
-  if (job.applyUrl) return job.applyUrl;
-  if (job.applicationUrl) return job.applicationUrl;
-  if (job.url) return job.url;
-
-  const apiUrl = getApiApplyUrl(job);
-  if (apiUrl) return apiUrl;
-
-  const title = encodeURIComponent(job.title || "Job");
-  const company = encodeURIComponent(job.company || "HireFlow");
-
-  return `mailto:careers@hireflow.com?subject=Application for ${title} at ${company}`;
-}
-
 function JobCard({
   job,
   isSaved = false,
@@ -157,10 +123,7 @@ function JobCard({
 
   const handleApply = (event) => {
     event.stopPropagation();
-
-    const applyUrl = createApplyUrl(job);
-
-    window.open(applyUrl, "_blank", "noopener,noreferrer");
+    handleOpen();
   };
 
   const handleSave = (event) => {

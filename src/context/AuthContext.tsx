@@ -1,10 +1,14 @@
 import { createContext, useContext, useCallback, useState, useEffect } from "react";
+import { apiUrl, readApiError, TOKEN_KEY, USER_KEY } from "../services/api";
+
+type Role = "job_seeker" | "employer" | "admin";
+type SignupType = "recruiter" | "candidate" | "admin";
 
 interface User {
-  id: string;
+  id: number;
   email: string;
-  fullName: string;
-  userType: "recruiter" | "candidate";
+  username: string;
+  role: Role;
 }
 
 interface AuthContextType {
@@ -16,7 +20,7 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string,
-    userType: "recruiter" | "candidate"
+    userType: SignupType
   ) => Promise<void>;
   logout: () => void;
   error: string | null;
@@ -25,8 +29,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = "hireflow_auth_token";
-const USER_KEY = "hireflow_user";
+const LEGACY_TOKEN_KEY = "hireflow_auth_token";
+const LEGACY_USER_KEY = "hireflow_user";
+
+const roleForSignupType = (userType: SignupType): Role => {
+  if (userType === "recruiter") return "employer";
+  if (userType === "admin") return "admin";
+  return "job_seeker";
+};
+
+const persistSession = (token: string, user: User) => {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_USER_KEY);
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -34,73 +51,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(USER_KEY);
+    const stored = localStorage.getItem(USER_KEY) || localStorage.getItem(LEGACY_USER_KEY);
     if (stored) {
       try {
         setUser(JSON.parse(stored));
       } catch {
         localStorage.removeItem(USER_KEY);
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(LEGACY_USER_KEY);
+        localStorage.removeItem(LEGACY_TOKEN_KEY);
       }
     }
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch("http://localhost:5000/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
+  const login = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(apiUrl("/api/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || "Login failed");
-        }
-
-        const data = await response.json();
-        localStorage.setItem(TOKEN_KEY, data.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-        setUser(data.user);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Login failed. Please try again.";
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(await readApiError(response, "Login failed"));
       }
-    },
-    []
-  );
+
+      const data = await response.json();
+      persistSession(data.token, data.user);
+      setUser(data.user);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Login failed. Please try again.";
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const signup = useCallback(
     async (
       email: string,
       password: string,
       fullName: string,
-      userType: "recruiter" | "candidate"
+      userType: SignupType
     ) => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch("http://localhost:5000/api/auth/signup", {
+        const response = await fetch(apiUrl("/api/auth/register"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, fullName, userType }),
+          body: JSON.stringify({
+            username: fullName,
+            email,
+            password,
+            role: roleForSignupType(userType),
+          }),
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || "Signup failed");
+          throw new Error(await readApiError(response, "Signup failed"));
         }
 
         const data = await response.json();
-        localStorage.setItem(TOKEN_KEY, data.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        persistSession(data.token, data.user);
         setUser(data.user);
       } catch (err) {
         const message =
@@ -117,6 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_USER_KEY);
     setUser(null);
     setError(null);
   }, []);

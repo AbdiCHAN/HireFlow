@@ -1,25 +1,102 @@
 import { Router } from 'express';
 import { JobModel } from '../models/Job.ts';
 import { authenticateToken, authorizeRole } from '../middleware/auth.ts';
+import { fetchJobs as fetchPublicJobs } from '../../services/api.ts';
 
 const router = Router();
 let jobModel: JobModel;
-
 
 export function setJobModel(db: any) {
   jobModel = JobModel.create(db);
 }
 
-// Get all jobs (public)
+const serializeTags = (tags: any) => {
+  if (Array.isArray(tags)) return JSON.stringify(tags.slice(0, 8));
+  if (tags === undefined || tags === null) return undefined;
+  return String(tags);
+};
+
+const toNumber = (value: any, fallback?: number) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const syncPublicJobs = async ({
+  search = '',
+  category = '',
+  limit = 40,
+}: {
+  search?: string;
+  category?: string;
+  limit?: number;
+}) => {
+  try {
+    const publicJobs = await fetchPublicJobs({
+      search,
+      category,
+      limit: Math.min(Math.max(limit, 1), 80),
+    });
+
+    for (const publicJob of publicJobs) {
+      const externalId = publicJob.id ? String(publicJob.id) : '';
+      if (!externalId) continue;
+
+      const existing = await jobModel.findByExternalId(externalId);
+      const jobPayload = {
+        externalId,
+        source: 'public',
+        title: publicJob.title,
+        company: publicJob.company,
+        companyLogo: publicJob.companyLogo,
+        category: publicJob.category,
+        rawCategory: publicJob.rawCategory,
+        jobType: publicJob.jobType,
+        location: publicJob.location,
+        salary: publicJob.salary,
+        description: publicJob.description,
+        fullDescription: publicJob.fullDescription,
+        url: publicJob.url,
+        applicationUrl: publicJob.applicationUrl,
+        applyUrl: publicJob.applyUrl,
+        tags: serializeTags(publicJob.tags),
+        postedAt: publicJob.postedAt,
+        sourceName: publicJob.source || 'Remotive',
+        featured: publicJob.featured || false,
+      };
+
+      if (existing?.id) {
+        await jobModel.update(existing.id, jobPayload);
+      } else {
+        await jobModel.create(jobPayload);
+      }
+    }
+  } catch (error: any) {
+    console.warn('Public job sync skipped:', error?.message || error);
+  }
+};
+
 router.get('/', async (req, res) => {
   try {
-    const { search, category, limit, offset } = req.query;
+    const { search, category, limit, offset, sync } = req.query;
+    const numericLimit = toNumber(limit, 40) || 40;
+    const searchValue = (search as string) || '';
+    const categoryValue = (category as string) || '';
+
+    if (sync !== 'false') {
+      await syncPublicJobs({
+        search: searchValue,
+        category: categoryValue,
+        limit: numericLimit,
+      });
+    }
+
     const jobs = await jobModel.list({
-      search: search as string || undefined,
-      category: category as string || undefined,
-      limit: limit ? Number(limit) : undefined,
-      offset: offset ? Number(offset) : undefined
+      search: searchValue || undefined,
+      category: categoryValue || undefined,
+      limit: numericLimit,
+      offset: toNumber(offset),
     });
+
     res.json({ data: jobs });
   } catch (error) {
     console.error('Get jobs error:', error);
@@ -27,6 +104,17 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/my/jobs', authenticateToken, async (req, res) => {
+  try {
+    const jobs = await jobModel.list({
+      postedByUserId: req.user!.id
+    });
+    res.json({ data: jobs });
+  } catch (error) {
+    console.error('Get my jobs error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 router.get('/:id', async (req, res) => {
   try {
@@ -47,7 +135,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-
 router.post('/', authenticateToken, authorizeRole(['employer', 'admin']), async (req, res) => {
   try {
     const {
@@ -56,14 +143,13 @@ router.post('/', authenticateToken, authorizeRole(['employer', 'admin']), async 
       applicationUrl, applyUrl, tags, postedAt, sourceName, featured
     } = req.body;
 
-    // Validate required fields
     if (!title || !company) {
       return res.status(400).json({ error: 'Title and company are required' });
     }
 
     const job = await jobModel.create({
       externalId,
-      source,
+      source: source || 'internal',
       title,
       company,
       companyLogo,
@@ -73,15 +159,15 @@ router.post('/', authenticateToken, authorizeRole(['employer', 'admin']), async 
       location,
       salary,
       description,
-      fullDescription,
+      fullDescription: fullDescription || description,
       url,
       applicationUrl,
       applyUrl,
-      tags,
+      tags: serializeTags(tags),
       postedAt,
-      sourceName,
+      sourceName: sourceName || 'HireFlow',
       featured: featured || false,
-      postedByUserId: req.user.id
+      postedByUserId: req.user!.id
     });
 
     res.status(201).json({ data: job });
@@ -90,7 +176,6 @@ router.post('/', authenticateToken, authorizeRole(['employer', 'admin']), async 
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
@@ -104,11 +189,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    
-    const isOwner = job.postedByUserId === req.user.id;
-    const isAdminOrEmployer = req.user.role === 'admin' || req.user.role === 'employer';
+    const isOwner = job.postedByUserId === req.user!.id;
+    const isAdmin = req.user!.role === 'admin';
 
-    if (!isOwner && !isAdminOrEmployer) {
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
@@ -134,7 +218,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       url,
       applicationUrl,
       applyUrl,
-      tags,
+      tags: serializeTags(tags),
       postedAt,
       sourceName,
       featured
@@ -151,7 +235,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -164,11 +247,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    
-    const isOwner = job.postedByUserId === req.user.id;
-    const isAdminOrEmployer = req.user.role === 'admin' || req.user.role === 'employer';
+    const isOwner = job.postedByUserId === req.user!.id;
+    const isAdmin = req.user!.role === 'admin';
 
-    if (!isOwner && !isAdminOrEmployer) {
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
@@ -180,18 +262,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Job deleted successfully' });
   } catch (error) {
     console.error('Delete job error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.get('/my/jobs', authenticateToken, async (req, res) => {
-  try {
-    const jobs = await jobModel.list({
-      postedByUserId: req.user.id
-    });
-    res.json({ data: jobs });
-  } catch (error) {
-    console.error('Get my jobs error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

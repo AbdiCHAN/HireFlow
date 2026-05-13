@@ -1,14 +1,16 @@
-import express from 'express';
 import jwt from 'jsonwebtoken';
+import type { Request, Response, NextFunction } from 'express';
 
-const { Request, Response, NextFunction } = express;
+export interface AuthenticatedRequest extends Request {
+  user?: any;
+}
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    return res.sendStatus(401); // Unauthorized
+    return res.status(401).json({ error: 'Authentication token is required' });
   }
 
   const SECRET = process.env.ACCESS_TOKEN_SECRET || 'hireflow-dev-secret';
@@ -18,7 +20,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
   jwt.verify(token, SECRET, (err: any, user: any) => {
     if (err) {
-      return res.sendStatus(403); // Forbidden
+      return res.status(403).json({ error: 'Invalid or expired token' });
     }
     req.user = user;
     next();
@@ -26,12 +28,12 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 };
 
 export const authorizeRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.sendStatus(401);
+      return res.status(401).json({ error: 'Authentication token is required' });
     }
     if (!roles.includes(req.user.role)) {
-      return res.sendStatus(403);
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
     next();
   };

@@ -1,5 +1,7 @@
 
 import { useState } from "react";
+import { apiUrl, authHeaders, readApiError } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 function Section({ title, sub, children }) {
   return (
     <div style={{ padding:"60px 0 100px" }}>
@@ -134,6 +136,7 @@ export function NewsPage() {
 
 
 export function PostJobPage({ onNavigate }) {
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     company: "",
@@ -155,20 +158,20 @@ export function PostJobPage({ onNavigate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMessage("");
 
     try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        setMessage("Please login first");
+      if (!isAuthenticated) {
+        setMessage("Please login first to post a job");
         setLoading(false);
         return;
       }
 
-      const res = await fetch("/api/jobs", {
+      const res = await fetch(apiUrl("/api/jobs"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          ...authHeaders(),
         },
         body: JSON.stringify(formData)
       });
@@ -177,7 +180,7 @@ export function PostJobPage({ onNavigate }) {
         setMessage("✓ Job posted!");
         setFormData({ title: "", company: "", location: "", salary: "", jobType: "Full-time", description: "" });
       } else {
-        setMessage("✗ Failed to post job");
+        setMessage(`✗ ${await readApiError(res, "Failed to post job")}`);
       }
     } catch (err) {
       setMessage("✗ Error: " + err.message);
@@ -185,6 +188,20 @@ export function PostJobPage({ onNavigate }) {
       setLoading(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <Section title="Post a Job" sub="Log in first, then publish openings from this page.">
+        <div style={{ maxWidth:520, margin:"0 auto", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--r-xl)", padding:"36px", textAlign:"center" }}>
+          <p style={{ color:"var(--text2)", marginBottom:20 }}>Create an employer or admin account to post roles into the HireFlow jobs API.</p>
+          <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+            <button className="btn btn--primary" onClick={() => onNavigate("login")}>Login</button>
+            <button className="btn btn--outline" onClick={() => onNavigate("signup")}>Sign up</button>
+          </div>
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <Section title="Post a Job" sub="Reach thousands of qualified candidates across Africa and beyond.">
@@ -242,7 +259,8 @@ export function PostJobPage({ onNavigate }) {
 }
 
 
-export function CVPostPage() {
+export function CVPostPage({ onNavigate }) {
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -277,8 +295,7 @@ export function CVPostPage() {
     setMessage("");
 
     try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
+      if (!isAuthenticated) {
         setMessage("Please login first to upload CV");
         setLoading(false);
         return;
@@ -295,16 +312,16 @@ export function CVPostPage() {
         formDataToSend.append("cvFile", formData.file);
       }
 
-      const response = await fetch("/api/cv", {
+      const response = await fetch(apiUrl("/api/cv"), {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`
+          ...authHeaders(),
         },
         body: formDataToSend
       });
 
       if (!response.ok) {
-        throw new Error("Failed to upload CV");
+        throw new Error(await readApiError(response, "Failed to upload CV"));
       }
 
       setMessage("✓ CV uploaded successfully!");
@@ -317,6 +334,20 @@ export function CVPostPage() {
       setLoading(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <Section title="Upload Your CV" sub="Log in first so your CV is saved to your account.">
+        <div style={{ maxWidth:520, margin:"0 auto", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--r-xl)", padding:"36px", textAlign:"center" }}>
+          <p style={{ color:"var(--text2)", marginBottom:20 }}>After login, this page uploads your CV into the backend API for applications and admin review.</p>
+          <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+            <button className="btn btn--primary" onClick={() => onNavigate("login")}>Login</button>
+            <button className="btn btn--outline" onClick={() => onNavigate("signup")}>Sign up</button>
+          </div>
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <Section title="Upload Your CV" sub="Let companies find you. Upload your CV and get discovered by top recruiters.">

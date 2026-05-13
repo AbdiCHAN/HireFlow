@@ -9,6 +9,10 @@ export default defineConfig(({ command }) => {
     base: isBuild ? "/HireFlow2/" : "/",
     server: {
       open: true,
+      proxy: {
+        "/api": "http://localhost:5000",
+        "/health": "http://localhost:5000",
+      },
     },
   };
 });

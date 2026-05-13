@@ -1,5 +1,7 @@
 
-import { LOGO_COLORS, normalizeType } from "../services/api";
+import { useState } from "react";
+import { apiRequest, authHeaders, normalizeType, LOGO_COLORS } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 function getInitials(n=""){return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();}
 function badgeLabel(t=""){
@@ -12,7 +14,11 @@ function Bag(){return<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
 function Clock(){return<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;}
 function Globe(){return<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10A15 15 0 0 1 12 2z"/></svg>;}
 
-function JobDetails({ job, onBack, isSaved, onSave }) {
+function JobDetails({ job, onBack, isSaved, onSave, onNavigate }) {
+  const { isAuthenticated } = useAuth();
+  const [applying, setApplying] = useState(false);
+  const [applicationMessage, setApplicationMessage] = useState("");
+
   if (!job) return (
     <div className="container detail-page">
       <button className="back-btn" onClick={onBack}><ArrowLeft/> Back to jobs</button>
@@ -20,8 +26,44 @@ function JobDetails({ job, onBack, isSaved, onSave }) {
     </div>
   );
 
-  const lc = LOGO_COLORS[job.id % LOGO_COLORS.length];
+  const numericId = Number(job.id);
+  const lc = LOGO_COLORS[
+    Number.isFinite(numericId) ? numericId % LOGO_COLORS.length : 0
+  ];
   const type = job.jobType || "full-time";
+
+  const handleApply = async () => {
+    setApplicationMessage("");
+
+    if (!isAuthenticated) {
+      setApplicationMessage("Please login first to apply for this job.");
+      onNavigate?.("login");
+      return;
+    }
+
+    const jobId = Number(job.id);
+    if (!Number.isFinite(jobId)) {
+      setApplicationMessage("This job cannot accept internal applications yet.");
+      return;
+    }
+
+    setApplying(true);
+    try {
+      const data = await apiRequest("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
+        body: JSON.stringify({ jobId }),
+      });
+      setApplicationMessage(`✓ ${data.message || "Application submitted successfully"}`);
+    } catch (error: any) {
+      setApplicationMessage(`✗ ${error.message || "Failed to submit application"}`);
+    } finally {
+      setApplying(false);
+    }
+  };
 
   return (
     <div className="container detail-page">
@@ -69,8 +111,14 @@ function JobDetails({ job, onBack, isSaved, onSave }) {
             )}
             <button
               className="detail-side__apply"
-              onClick={() => job.url && job.url!=="#" && window.open(job.url,"_blank")}
-            >Apply Now →</button>
+              onClick={handleApply}
+              disabled={applying}
+            >{applying ? "Applying..." : "Apply Now →"}</button>
+            {applicationMessage && (
+              <p style={{ marginTop:12, fontSize:13, lineHeight:1.5, color: applicationMessage.includes("✓") ? "#10b981" : "#ef4444" }}>
+                {applicationMessage}
+              </p>
+            )}
             <button
               className={`detail-side__save ${isSaved?"detail-side__save--saved":""}`}
               onClick={() => onSave?.(job.id)}

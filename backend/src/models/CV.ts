@@ -56,6 +56,19 @@ export class CVModel {
     return row ? (row as CV) : null;
   }
 
+  async list(): Promise<any[]> {
+    const rows = await this.db.all(
+      `SELECT c.id, c.user_id, c.full_name, c.email, c.phone, c.linkedin_url,
+              c.current_role, c.expected_salary, c.cv_file_path,
+              c.created_at, c.updated_at,
+              u.username as username, u.email as user_email
+       FROM cvs c
+       JOIN users u ON u.id = c.user_id
+       ORDER BY c.created_at DESC`
+    );
+    return rows as any[];
+  }
+
   async update(id: number, cv: Partial<CV>): Promise<CV | null> {
     const fields: string[] = [];
     const values: any[] = [];
@@ -93,6 +106,6 @@ export class CVModel {
 
   async delete(id: number): Promise<boolean> {
     const result = await this.db.run(`DELETE FROM cvs WHERE id = ?`, [id]);
-    return result.changes > 0;
+    return (result.changes || 0) > 0;
   }
 }
