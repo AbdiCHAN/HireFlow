@@ -40,7 +40,7 @@
     "globals": "^17.5.0",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
-    "vite": "^8.0.10"
+    "vite": "^8.0.12"
   },
   "homepage": "https://abdichan.github.io/HireFlow2/"
 }
