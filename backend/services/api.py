@@ -1,3 +1,4 @@
+
 import os
 import re
 import html
@@ -244,4 +245,4 @@ def fetch_job_by_id(job_id: Union[str, int]) -> Optional[Dict[str, Any]]:
         if str(job["id"]) == str(job_id):
             return job
 
-    return None
+    return None 
