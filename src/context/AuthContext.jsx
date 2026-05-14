@@ -25,7 +25,9 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(USER_KEY) || localStorage.getItem(LEGACY_USER_KEY);
+    const stored =
+      localStorage.getItem(USER_KEY) || localStorage.getItem(LEGACY_USER_KEY);
+
     if (stored) {
       try {
         setUser(JSON.parse(stored));
@@ -41,10 +43,13 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     setIsLoading(true);
     setError(null);
+
     try {
       const response = await fetch(apiUrl("/api/auth/login"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -53,11 +58,15 @@ export function AuthProvider({ children }) {
       }
 
       const data = await response.json();
+
       persistSession(data.token, data.user);
       setUser(data.user);
+
+      return data;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Login failed. Please try again.";
+
       setError(message);
       throw err;
     } finally {
@@ -65,40 +74,44 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const signup = useCallback(
-    async (email, password, fullName, userType) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(apiUrl("/api/auth/register"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: fullName,
-            email,
-            password,
-            role: roleForSignupType(userType),
-          }),
-        });
+  const signup = useCallback(async (email, password, fullName, userType) => {
+    setIsLoading(true);
+    setError(null);
 
-        if (!response.ok) {
-          throw new Error(await readApiError(response, "Signup failed"));
-        }
+    try {
+      const response = await fetch(apiUrl("/api/auth/register"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: fullName,
+          email,
+          password,
+          role: roleForSignupType(userType),
+        }),
+      });
 
-        const data = await response.json();
-        persistSession(data.token, data.user);
-        setUser(data.user);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Signup failed. Please try again.";
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(await readApiError(response, "Signup failed"));
       }
-    },
-    []
-  );
+
+      const data = await response.json();
+
+      persistSession(data.token, data.user);
+      setUser(data.user);
+
+      return data;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Signup failed. Please try again.";
+
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
@@ -115,7 +128,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated: Boolean(user),
     isLoading,
     login,
     signup,
@@ -124,15 +137,15 @@ export function AuthProvider({ children }) {
     clearError,
   };
 
-  return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error("useAuth must be used within AuthProvider");
   }
+
   return context;
 }

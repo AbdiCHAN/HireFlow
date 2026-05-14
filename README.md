@@ -1,280 +1,116 @@
 # HireFlow2
 
-HireFlow2 is a full-stack job search and hiring application. It uses a React + TypeScript frontend, a TypeScript Express backend, SQLite for data storage, JWT authentication, CV uploads, job applications, admin review tools, backend-generated API keys, and public job syncing through the Remotive jobs API.
+HireFlow2 is a full-stack job search and hiring application. The frontend is built with React JSX and Vite, while the backend is built with Flask and Python. The app supports job browsing, account authentication, CV uploads, job applications, admin review tools, API key management, and public job syncing through the Remotive Jobs API.
 
-The current frontend has a professional LinkedIn-style flow with a feed dashboard, job workspace, network page, messages page, profile page, CV upload page, post-job page, admin dashboard, and API key management page.
+The frontend follows a professional LinkedIn-style flow with a home dashboard, job listing workspace, job details page, network page, messages page, profile page, CV upload page, post-job page, admin dashboard, and developer API key page.
 
 ## Main Stack
 
-- Frontend: React, TypeScript, Vite, CSS
-- Default backend: Node.js, Express, TypeScript
-- Optional backend equivalent: Flask, SQLAlchemy
-- Database: SQLite
-- Authentication: JWT
-- Password hashing: bcrypt
-- File uploads: CV files through the backend
-- Public jobs source: Remotive public jobs API
+Frontend: React, JSX, Vite, CSS
+
+Backend: Flask, Python, SQLAlchemy
+
+Database: SQLite
+
+Authentication: JWT
+
+Password hashing: bcrypt
+
+File uploads: CV files handled by Flask backend
+
+Public jobs source: Remotive Jobs API
 
 ## Core Features
 
-- Browse jobs from the local backend and the public Remotive API at the same time
-- Merge and deduplicate backend jobs and public jobs before showing them
-- Search and filter jobs by category, type, company, location, skills, and description
-- Sign up and log in with role-based accounts
-- Upload and update a CV
-- Apply to jobs with a saved account
-- Post internal jobs
-- View admin overview data for users, jobs, CVs, and applications
-- Generate app-owned API keys from the backend
-- Manage profile, messages, network, saved jobs, and developer API access
+Users can browse jobs from the Flask backend and the public Remotive API. Jobs can be searched and filtered by category, type, company, location, skills, and description.
 
-## Run The Default App
+Users can sign up, log in, upload a CV, apply to jobs, save jobs, and manage their profile. Employers and admins can post jobs, review applications, and manage platform data. The backend also supports app-owned API keys for developer access.
 
-Install dependencies:
+## Project Structure
+
+```text
+HireFlow2/
+  src/
+    App.jsx
+    main.jsx
+    components/
+    pages/
+    context/
+    services/
+    styles/
+    assets/
+
+  backend_flask/
+    app.py
+    config.py
+    extensions.py
+    models.py
+    auth_utils.py
+    routes/
+    services/
+
+  uploads/
+  instance/
+  package.json
+  requirements.txt
+  README.md
+```
+
+## Frontend Setup
+
+Install frontend dependencies:
 
 ```bash
 npm install
 ```
 
-Start the frontend and Express backend together:
+Start the React frontend:
 
 ```bash
 npm run dev
 ```
 
-The dev script starts the backend on a free local port, then starts Vite with `VITE_API_BASE_URL` pointing to that backend.
+The frontend uses JSX files and connects to the Flask backend through `VITE_API_BASE_URL`.
 
-Useful scripts:
+Example `.env` frontend value:
+
+```bash
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+Useful frontend scripts:
 
 ```bash
 npm run dev
-npm run dev:client
-npm run dev:server
 npm run build
 npm run lint
 ```
 
-## Deploy To GitHub Pages
+## Flask Backend Setup
 
-The project is configured for GitHub Pages under:
-
-```text
-https://abdichan.github.io/HireFlow2/
-```
-
-Redeploy the static frontend with:
-
-```bash
-npm run deploy
-```
-
-Before deploying, run:
-
-```bash
-npm run lint
-npm run build
-```
-
-Important GitHub Pages note: GitHub Pages only hosts the frontend static files. It does not run the Express backend or the Flask backend. Public job browsing can still fall back to the Remotive public API and demo data, but login, signup, CV upload, job posting, applications, admin overview, and API key management need a hosted backend.
-
-If a backend is hosted elsewhere, build with its URL:
-
-```bash
-VITE_API_BASE_URL=https://your-backend-url.example.com npm run build
-npx gh-pages -d dist
-```
-
-## Run The Flask Backend Option
-
-The Flask + SQLAlchemy backend is an equivalent backend implementation for the same API shape.
+Create and activate a Python virtual environment:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+Install backend dependencies:
+
+```bash
 pip install -r requirements.txt
-python3 -m backend_flask.app
 ```
 
-Then run the frontend against Flask:
+Run the Flask backend:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:5000 npm run dev:client
+python3 backend_flask/app.py
 ```
 
-## Main API Routes
+The backend should run on:
 
-- `POST /api/auth/register`: create an account
-- `POST /api/auth/signup`: create an account alias
-- `POST /api/auth/login`: log in
-- `GET /api/auth/me`: get the current user
-- `GET /api/jobs`: list jobs and sync public jobs unless `sync=false`
-- `GET /api/jobs/:id`: get one job
-- `POST /api/jobs`: create an internal job
-- `PUT /api/jobs/:id`: update a job
-- `DELETE /api/jobs/:id`: delete a job
-- `POST /api/cv`: upload or update a CV
-- `GET /api/cv/my`: get the logged-in user's CV
-- `POST /api/applications`: apply to a job
-- `GET /api/applications/my`: get my applications
-- `GET /api/applications`: employer or admin application list
-- `PATCH /api/applications/:id/status`: update application status
-- `GET /api/admin/overview`: admin dashboard data
-- `GET /api/api-keys`: list API keys for the logged-in user
-- `POST /api/api-keys`: create a new API key
-- `DELETE /api/api-keys/:id`: revoke an API key
-
-## API Key Rules
-
-HireFlow creates its own backend API keys. These are not external service keys.
-
-- Keys are generated by the backend.
-- Keys are shown only once when created.
-- Only a hash is stored in the database.
-- Revoked keys cannot be used again.
-- Public job syncing still uses the Remotive public API separately.
-
-## Team Responsibilities
-
-Each person owns a clear frontend area and an equal backend file group. Backend ownership is balanced at 8 backend files per person. Runtime/generated files such as `backend/data/hireflow.db`, `backend/uploads`, `dist`, and `node_modules` are not assigned because they are generated locally.
-
-## Abdirahman
-
-Role: Team Lead and Full-Stack Integration Lead.
-
-Frontend responsibilities:
-
-- `src/App.tsx`
-- `src/main.tsx`
-- `src/context/AuthContext.tsx`
-- `src/services/api.ts`
-- `src/pages/Login.tsx`
-- `src/pages/Signup.tsx`
-
-Backend responsibilities:
-
-- `backend/server.ts`
-- `backend/services/api.ts`
-- `backend/src/middleware/auth.ts`
-- `backend/src/routes/auth.ts`
-- `backend_flask/app.py`
-- `backend_flask/auth_utils.py`
-- `backend_flask/routes/auth.py`
-- `backend_flask/services/remotive.py`
-
-Work focus:
-
-- Keep frontend and backend connected.
-- Maintain login, signup, JWT session flow, and protected route behavior.
-- Keep public jobs syncing stable.
-- Make sure both Express and Flask startup flows remain clear.
-
-## Athanas
-
-Role: Frontend Layout Lead and Database Structure Lead.
-
-Frontend responsibilities:
-
-- `src/components/Navbar.tsx`
-- `src/pages/Home.tsx`
-- `src/styles/main.css`
-- `src/index.css`
-- `src/App.css`
-- `src/assets/hero.png`
-
-Backend responsibilities:
-
-- `backend/src/config/database.ts`
-- `backend/src/models/User.ts`
-- `backend/src/models/Job.ts`
-- `backend/src/types/express.d.ts`
-- `backend_flask/config.py`
-- `backend_flask/extensions.py`
-- `backend_flask/models.py`
-- `backend_flask/__init__.py`
-
-Work focus:
-
-- Maintain the database schema and model structure.
-- Keep TypeScript request typing correct.
-- Keep the LinkedIn-style UI layout responsive and polished.
-- Make sure Express and Flask database models stay aligned.
-
-## Donald
-
-Role: Jobs, Applications, and Workflow Lead.
-
-Frontend responsibilities:
-
-- `src/components/JobCard.tsx`
-- `src/components/JobList.tsx`
-- `src/pages/JobDetails.tsx`
-- `src/components/Loader.tsx`
-- `src/components/Error.tsx`
-
-Backend responsibilities:
-
-- `backend/src/routes/jobs.ts`
-- `backend/src/models/Application.ts`
-- `backend/src/routes/applications.ts`
-- `backend/src/routes/apiKeys.ts`
-- `backend_flask/routes/jobs.py`
-- `backend_flask/routes/applications.py`
-- `backend_flask/routes/api_keys.py`
-- `backend_flask/routes/__init__.py`
-
-Work focus:
-
-- Maintain job listing, job details, job posting, and job application logic.
-- Keep application status flow correct for job seekers, employers, and admins.
-- Maintain API key route behavior in both backend implementations.
-- Make sure job and application responses match what the frontend expects.
-
-## Albert
-
-Role: Forms, CV, Admin, and Developer Access Lead.
-
-Frontend responsibilities:
-
-- `src/components/Filters.tsx`
-- `src/components/SearchBar.tsx`
-- `src/pages/InfoPages.tsx`
-- `src/pages/AdminDashboard.tsx`
-- `src/index.html`
-
-Backend responsibilities:
-
-- `backend/src/routes/cv.ts`
-- `backend/src/models/CV.ts`
-- `backend/src/routes/admin.ts`
-- `backend/src/models/ApiKey.ts`
-- `backend_flask/routes/cv.py`
-- `backend_flask/routes/admin.py`
-- `backend_flask/services/__init__.py`
-- `backend_flask/README.md`
-
-Work focus:
-
-- Maintain CV upload and CV update flow.
-- Maintain admin overview data.
-- Maintain the API key model and developer access documentation.
-- Keep form handling, filters, admin views, and user-facing feedback clear.
-
-## Backend Coordination Rules
-
-- If a change touches another person's backend file, tell that person before merging.
-- Keep Express and Flask API responses aligned when possible.
-- Do not commit generated database files or uploaded CV files.
-- Run `npm run build` before submitting frontend changes.
-- Run `npm run lint` before submitting TypeScript changes.
-- Smoke-test auth, jobs, CV upload, applications, admin overview, and API keys after backend changes.
-
-## Suggested Smoke Checks
-
-Build and lint:
-
-```bash
-npm run build
-npm run lint
+```text
+http://localhost:5000
 ```
 
 Check backend health:
@@ -283,8 +119,184 @@ Check backend health:
 curl http://localhost:5000/health
 ```
 
-List jobs without public sync:
+## Environment Variables
+
+Create a `.env` file for backend values:
 
 ```bash
+PORT=5000
+ACCESS_TOKEN_SECRET=your-secure-secret
+REMOTIVE_API_URL=https://remotive.com/api/remote-jobs
+DATABASE_URL=sqlite:///instance/hireflow.db
+```
+
+Do not commit real secrets to GitHub.
+
+## Main API Routes
+
+```text
+POST   /api/auth/register
+POST   /api/auth/signup
+POST   /api/auth/login
+GET    /api/auth/me
+
+GET    /api/jobs
+GET    /api/jobs/<id>
+POST   /api/jobs
+PUT    /api/jobs/<id>
+DELETE /api/jobs/<id>
+
+POST   /api/cv
+GET    /api/cv/my
+
+POST   /api/applications
+GET    /api/applications/my
+GET    /api/applications
+PATCH  /api/applications/<id>/status
+
+GET    /api/admin/overview
+
+GET    /api/api-keys
+POST   /api/api-keys
+DELETE /api/api-keys/<id>
+
+GET    /health
+```
+
+## GitHub Pages Note
+
+GitHub Pages only hosts the static React frontend. It does not run the Flask backend.
+
+This means features like login, signup, CV upload, job posting, applications, admin overview, and API key management need the Flask backend to be hosted separately.
+
+To build the frontend with a hosted backend URL:
+
+```bash
+VITE_API_BASE_URL=https://your-backend-url.example.com npm run build
+```
+
+Then deploy the frontend:
+
+```bash
+npm run deploy
+```
+
+## Team Responsibilities
+
+Abdirahman is the Team Lead and Full-Stack Integration Lead.
+
+Abdirahman handles the main app flow, frontend/backend connection, authentication flow, API service connection, and Flask backend startup.
+
+Frontend files:
+
+```text
+src/App.jsx
+src/main.jsx
+src/context/AuthContext.jsx
+src/services/api.js
+src/pages/Login.jsx
+src/pages/Signup.jsx
+```
+
+Backend files:
+
+```text
+backend_flask/app.py
+backend_flask/auth_utils.py
+backend_flask/routes/auth.py
+backend_flask/services/remotive.py
+```
+
+Athanas is the Frontend Layout Lead and Database Structure Lead.
+
+Athanas handles the navbar, homepage layout, global styling, responsive design, database setup, and model structure.
+
+Frontend files:
+
+```text
+src/components/Navbar.jsx
+src/pages/Home.jsx
+src/styles/main.css
+src/index.css
+src/App.css
+```
+
+Backend files:
+
+```text
+backend_flask/config.py
+backend_flask/extensions.py
+backend_flask/models.py
+backend_flask/__init__.py
+```
+
+Donald is the Jobs, Applications, and Workflow Lead.
+
+Donald handles job cards, job lists, job details, loading/error states, job routes, application routes, and API key routes.
+
+Frontend files:
+
+```text
+src/components/JobCard.jsx
+src/components/JobList.jsx
+src/pages/JobDetails.jsx
+src/components/Loader.jsx
+src/components/Error.jsx
+```
+
+Backend files:
+
+```text
+backend_flask/routes/jobs.py
+backend_flask/routes/applications.py
+backend_flask/routes/api_keys.py
+backend_flask/routes/__init__.py
+```
+
+Albert is the Forms, CV, Admin, and Developer Access Lead.
+
+Albert handles search, filters, information pages, admin dashboard, CV uploads, admin routes, and developer access documentation.
+
+Frontend files:
+
+```text
+src/components/Filters.jsx
+src/components/SearchBar.jsx
+src/pages/InfoPages.jsx
+src/pages/AdminDashboard.jsx
+src/index.html
+```
+
+Backend files:
+
+```text
+backend_flask/routes/cv.py
+backend_flask/routes/admin.py
+backend_flask/services/__init__.py
+backend_flask/README.md
+```
+
+## Backend Coordination Rules
+
+If a change touches another person's backend file, tell that person before merging.
+
+Keep Flask API responses aligned with what the React frontend expects.
+
+Do not commit generated database files, uploaded CV files, virtual environment folders, `dist`, or `node_modules`.
+
+Before submitting changes, run:
+
+```bash
+npm run build
+npm run lint
+```
+
+Then smoke-test the backend:
+
+```bash
+curl http://localhost:5000/health
 curl "http://localhost:5000/api/jobs?sync=false"
 ```
+
+
+HireFlow2 is now a React JSX and Flask Python project. The frontend handles the user interface, while the Flask backend handles authentication, database operations, CV uploads, job applications, admin tools, API keys, and public job syncing.

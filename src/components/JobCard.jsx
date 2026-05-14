@@ -1,21 +1,20 @@
-// src/components/JobCard.jsx
 import { LOGO_COLORS, normalizeType } from "../services/api";
 
 function badgeClass(type = "") {
-  const t = normalizeType(type);
+  const normalizedType = normalizeType(type);
 
-  if (t === "full-time") return "badge--full";
-  if (t === "contract") return "badge--contract";
-  if (t === "part-time") return "badge--part";
-  if (t === "freelance") return "badge--freelance";
+  if (normalizedType === "full-time") return "badge--full";
+  if (normalizedType === "contract") return "badge--contract";
+  if (normalizedType === "part-time") return "badge--part";
+  if (normalizedType === "freelance") return "badge--freelance";
 
   return "badge--remote";
 }
 
 function badgeLabel(type = "") {
-  const t = normalizeType(type);
+  const normalizedType = normalizeType(type);
 
-  const map = {
+  const labels = {
     "full-time": "Full-time",
     contract: "Contract",
     "part-time": "Part-time",
@@ -23,12 +22,22 @@ function badgeLabel(type = "") {
     remote: "Remote",
   };
 
-  return map[t] || type || "Remote";
+  return labels[normalizedType] || type || "Remote";
 }
 
 function MapPin() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
     </svg>
@@ -37,7 +46,17 @@ function MapPin() {
 
 function HomeIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
     </svg>
   );
@@ -45,7 +64,17 @@ function HomeIcon() {
 
 function Dollar() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <line x1="12" y1="1" x2="12" y2="23" />
       <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
     </svg>
@@ -54,7 +83,15 @@ function Dollar() {
 
 function Heart({ filled }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? "#F43F5E" : "none"} stroke={filled ? "#F43F5E" : "currentColor"} strokeWidth="1.5" aria-hidden="true">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill={filled ? "#F43F5E" : "none"}
+      stroke={filled ? "#F43F5E" : "currentColor"}
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   );
@@ -114,6 +151,7 @@ function JobCard({
   const location = job.location || "Remote";
   const description =
     job.description || "No job description has been provided yet.";
+
   const tags = Array.isArray(job.tags) ? job.tags : [];
   const selectJob = onSelect || onSelectJob;
 
