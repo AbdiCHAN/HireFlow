@@ -2517,3 +2517,41 @@
     flex-direction: column;
   }
 }
+.search-bar input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.filters select {
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+.info-page {
+  padding: 20px;
+}
+
+.admin-dashboard {
+  padding: 20px;
+}
+
+.dashboard-cards {
+  display: flex;
+  gap: 20px;
+}
+
+.card {
+  background: #f3f3f3;
+  padding: 20px;
+  border-radius: 10px;
+  width: 200px;
+}
+
+.success {
+  color: green;
+}
+
+.error {
+  color: red;
+}
