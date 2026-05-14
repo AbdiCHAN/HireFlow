@@ -1,12 +1,11 @@
-// src/services/api.js
-
 const REMOTIVE_API_URL = "https://remotive.com/api/remote-jobs";
 const DEFAULT_TIMEOUT = 12000;
 
-// Backend proxy integration:
-// - In development, Vite proxies `/api` to the local backend server.
-// - In production, this will fall back to Remotive if the backend is unavailable.
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
+  /\/$/,
+  ""
+);
+
 export const TOKEN_KEY = "authToken";
 export const USER_KEY = "authUser";
 
@@ -16,7 +15,10 @@ export const apiUrl = (path = "") => {
 };
 
 export const getAuthToken = () => {
-  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem("hireflow_auth_token");
+  return (
+    localStorage.getItem(TOKEN_KEY) ||
+    localStorage.getItem("hireflow_auth_token")
+  );
 };
 
 export const authHeaders = () => {
@@ -103,6 +105,7 @@ export const normalizeTags = (tags = []) => {
 
     try {
       const parsed = JSON.parse(trimmed);
+
       if (Array.isArray(parsed)) {
         return parsed.map(String).filter(Boolean).slice(0, 8);
       }
@@ -632,6 +635,7 @@ export const fetchApiKeys = async () => {
   const data = await apiRequest("/api/api-keys", {
     headers: authHeaders(),
   });
+
   return data?.data || [];
 };
 
@@ -644,6 +648,7 @@ export const createApiKey = async (name = "HireFlow API Key") => {
     },
     body: JSON.stringify({ name }),
   });
+
   return data;
 };
 
@@ -724,9 +729,7 @@ export const getCategories = (jobs = DEMO_JOBS) => {
 export const getJobTypes = (jobs = DEMO_JOBS) => {
   return [
     "All Types",
-    ...new Set(
-      jobs.map((job) => job.jobType || job.type).filter(Boolean)
-    ),
+    ...new Set(jobs.map((job) => job.jobType || job.type).filter(Boolean)),
   ];
 };
 
@@ -741,7 +744,10 @@ export const fetchJobById = async (id) => {
 
   try {
     const data = await fetchFromUrl(apiUrl(`/api/jobs/${id}`));
-    if (data?.data) return normalizeJob(data.data);
+
+    if (data?.data) {
+      return normalizeJob(data.data);
+    }
   } catch {
     // Fall back below.
   }
