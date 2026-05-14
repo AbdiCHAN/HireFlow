@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import Navbar from "./components/Navbar";
+
 import Home from "./pages/Home";
 import JobDetails from "./pages/JobDetails";
+
 import {
   AboutPage,
   ApiKeysPage,
@@ -14,9 +17,11 @@ import {
   PostJobPage,
   ProfilePage,
 } from "./pages/InfoPages";
+
 import LoginPage from "./pages/Login";
 import SignupPage from "./pages/Signup";
 import AdminDashboard from "./pages/AdminDashboard";
+
 import "./App.css";
 
 const VALID_PAGES = new Set([
@@ -42,37 +47,62 @@ const SAVED_JOBS_KEY = "hireflow_saved_jobs";
 
 function getSafePage(page) {
   if (page === "register") return "signup";
-  return VALID_PAGES.has(page) ? page : "home";
+
+  return VALID_PAGES.has(page)
+    ? page
+    : "home";
 }
 
 function prefersReducedMotion() {
   return (
     typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+    window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)"
+    )?.matches
   );
 }
 
 function App() {
-  const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedJob, setSelectedJob] =
+    useState(null);
+
   const [savedIds, setSavedIds] = useState(() => {
     try {
-      const stored = localStorage.getItem(SAVED_JOBS_KEY);
-      const parsed = stored ? JSON.parse(stored) : [];
-      return new Set(Array.isArray(parsed) ? parsed : []);
+      const stored = localStorage.getItem(
+        SAVED_JOBS_KEY
+      );
+
+      const parsed = stored
+        ? JSON.parse(stored)
+        : [];
+
+      return new Set(
+        Array.isArray(parsed)
+          ? parsed
+          : []
+      );
     } catch {
       return new Set();
     }
   });
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activePage, setActivePage] = useState("home");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [searchTerm, setSearchTerm] =
+    useState("");
+
+  const [activePage, setActivePage] =
+    useState("home");
+
+  const [activeCategory, setActiveCategory] =
+    useState("All");
 
   useEffect(() => {
     try {
-      localStorage.setItem(SAVED_JOBS_KEY, JSON.stringify([...savedIds]));
+      localStorage.setItem(
+        SAVED_JOBS_KEY,
+        JSON.stringify([...savedIds])
+      );
     } catch {
-      // Ignore storage errors so the app does not crash.
+      // Ignore storage errors
     }
   }, [savedIds]);
 
@@ -80,34 +110,48 @@ function App() {
     requestAnimationFrame(() => {
       window.scrollTo({
         top: 0,
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        behavior: prefersReducedMotion()
+          ? "auto"
+          : "smooth",
       });
     });
   }, []);
 
   const scrollToJobs = useCallback(() => {
     setSelectedJob(null);
+
     setActivePage("jobs");
 
     requestAnimationFrame(() => {
-      const jobsSection = document.getElementById("jobs-anchor");
+      const jobsSection =
+        document.getElementById(
+          "jobs-anchor"
+        );
 
       if (jobsSection) {
         jobsSection.scrollIntoView({
-          behavior: prefersReducedMotion() ? "auto" : "smooth",
+          behavior: prefersReducedMotion()
+            ? "auto"
+            : "smooth",
           block: "start",
         });
       } else {
         window.scrollTo({
           top: 0,
-          behavior: prefersReducedMotion() ? "auto" : "smooth",
+          behavior: prefersReducedMotion()
+            ? "auto"
+            : "smooth",
         });
       }
     });
   }, []);
 
   const handleSave = useCallback((id) => {
-    if (id === undefined || id === null) return;
+    if (
+      id === undefined ||
+      id === null
+    )
+      return;
 
     setSavedIds((previousIds) => {
       const nextIds = new Set(previousIds);
@@ -146,10 +190,17 @@ function App() {
 
   const handleSelectJob = useCallback(
     (job) => {
-      if (!job || job.id === undefined || job.id === null) return;
+      if (
+        !job ||
+        job.id === undefined ||
+        job.id === null
+      )
+        return;
 
       setActivePage("jobs");
+
       setSelectedJob(job);
+
       scrollToTop();
     },
     [scrollToTop]
@@ -157,19 +208,27 @@ function App() {
 
   const handleBackToJobs = useCallback(() => {
     setSelectedJob(null);
+
     scrollToJobs();
   }, [scrollToJobs]);
 
   const handleCategorySelect = useCallback(
     (category) => {
       setSelectedJob(null);
-      setActiveCategory(category || "All");
+
+      setActiveCategory(
+        category || "All"
+      );
+
       scrollToJobs();
     },
     [scrollToJobs]
   );
 
-  const currentNavbarPage = selectedJob ? "jobs" : activePage;
+  const currentNavbarPage =
+    selectedJob
+      ? "jobs"
+      : activePage;
 
   const renderedPage = useMemo(() => {
     if (selectedJob) {
@@ -177,7 +236,9 @@ function App() {
         <JobDetails
           job={selectedJob}
           onBack={handleBackToJobs}
-          isSaved={savedIds.has(selectedJob.id)}
+          isSaved={savedIds.has(
+            selectedJob.id
+          )}
           onSave={handleSave}
           onNavigate={handleNavigate}
         />
@@ -186,48 +247,98 @@ function App() {
 
     switch (activePage) {
       case "about":
-        return <AboutPage onNavigate={handleNavigate} />;
+        return (
+          <AboutPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "categories":
         return (
           <CategoriesPage
             onNavigate={handleNavigate}
-            onCategorySelect={handleCategorySelect}
+            onCategorySelect={
+              handleCategorySelect
+            }
           />
         );
 
       case "candidates":
-        return <CandidatesPage onNavigate={handleNavigate} />;
+        return (
+          <CandidatesPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "network":
-        return <NetworkPage onNavigate={handleNavigate} />;
+        return (
+          <NetworkPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "messages":
-        return <MessagesPage onNavigate={handleNavigate} />;
+        return (
+          <MessagesPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "profile":
-        return <ProfilePage onNavigate={handleNavigate} />;
+        return (
+          <ProfilePage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "api-keys":
-        return <ApiKeysPage onNavigate={handleNavigate} />;
+        return (
+          <ApiKeysPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "news":
-        return <NewsPage onNavigate={handleNavigate} />;
+        return (
+          <NewsPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "post-job":
-        return <PostJobPage onNavigate={handleNavigate} />;
+        return (
+          <PostJobPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "login":
-        return <LoginPage onNavigate={handleNavigate} />;
+        return (
+          <LoginPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "signup":
-        return <SignupPage onNavigate={handleNavigate} />;
+        return (
+          <SignupPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "cv-post":
-        return <CVPostPage onNavigate={handleNavigate} />;
+        return (
+          <CVPostPage
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "admin":
-        return <AdminDashboard onNavigate={handleNavigate} />;
+        return (
+          <AdminDashboard
+            onNavigate={handleNavigate}
+          />
+        );
 
       case "home":
       case "jobs":
@@ -238,10 +349,16 @@ function App() {
             setSearchTerm={setSearchTerm}
             savedIds={savedIds}
             onSave={handleSave}
-            onSelectJob={handleSelectJob}
+            onSelectJob={
+              handleSelectJob
+            }
             onNavigate={handleNavigate}
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
+            activeCategory={
+              activeCategory
+            }
+            setActiveCategory={
+              setActiveCategory
+            }
           />
         );
     }
@@ -260,20 +377,27 @@ function App() {
 
   return (
     <div className="app app-shell">
+
       <Navbar
         activePage={currentNavbarPage}
         onNavigate={handleNavigate}
         savedCount={savedIds.size}
       />
 
-      <main className="main-content app__body">{renderedPage}</main>
+      <main className="main-content app__body">
+        {renderedPage}
+      </main>
 
       <footer className="footer">
         <div className="container">
-          © {new Date().getFullYear()} <strong>HireFlow</strong> · Find and
-          become a professional.
+          © {new Date().getFullYear()}
+          {" "}
+          <strong>HireFlow</strong>
+          {" "}
+          · Find and become a professional.
         </div>
       </footer>
+
     </div>
   );
 }
