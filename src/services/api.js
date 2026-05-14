@@ -1,12 +1,30 @@
-// src/services/api.js
-
 const REMOTIVE_API_URL = "https://remotive.com/api/remote-jobs";
 const DEFAULT_TIMEOUT = 12000;
 
-// Backend proxy integration:
-// - In development, Vite proxies `/api` to the local backend server.
-// - In production, this will fall back to Remotive if the backend is unavailable.
-const CUSTOM_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/";
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
+  /\/$/,
+  ""
+);
+
+export const TOKEN_KEY = "authToken";
+export const USER_KEY = "authUser";
+
+export const apiUrl = (path = "") => {
+  const safePath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${safePath}`;
+};
+
+export const getAuthToken = () => {
+  return (
+    localStorage.getItem(TOKEN_KEY) ||
+    localStorage.getItem("hireflow_auth_token")
+  );
+};
+
+export const authHeaders = () => {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const safeText = (value, fallback = "") => {
   if (value === undefined || value === null) return fallback;
@@ -74,6 +92,35 @@ export const normalizeType = (type = "") => {
   if (value.includes("remote")) return "remote";
 
   return value || "remote";
+};
+
+export const normalizeTags = (tags = []) => {
+  if (Array.isArray(tags)) {
+    return tags.map(String).filter(Boolean).slice(0, 8);
+  }
+
+  if (typeof tags === "string") {
+    const trimmed = tags.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+
+      if (Array.isArray(parsed)) {
+        return parsed.map(String).filter(Boolean).slice(0, 8);
+      }
+    } catch {
+      // Fall through to comma-separated parsing.
+    }
+
+    return trimmed
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .slice(0, 8);
+  }
+
+  return [];
 };
 
 export const LOGO_COLORS = [
@@ -404,7 +451,7 @@ const normalizeJob = (job = {}) => {
 
   const title = safeText(job.title, "Untitled Job");
   const company = safeText(job.company || job.company_name, "Unknown Company");
-  const tags = Array.isArray(job.tags) ? job.tags.slice(0, 5) : [];
+  const tags = normalizeTags(job.tags).slice(0, 5);
   const rawCategory = safeText(job.rawCategory || job.category, "General");
 
   return {
@@ -476,6 +523,25 @@ const fetchFromUrl = async (url, timeout = DEFAULT_TIMEOUT) => {
   }
 };
 
+export const readApiError = async (response, fallback = "Request failed") => {
+  try {
+    const data = await response.json();
+    return data?.error || data?.message || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+export const apiRequest = async (path, options = {}) => {
+  const response = await fetch(apiUrl(path), options);
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response));
+  }
+
+  return response.json();
+};
+
 const buildJobsUrl = ({ baseUrl, search = "", category = "", limit = 40 }) => {
   const isRemotive = baseUrl.includes("remotive.com");
 
@@ -495,6 +561,35 @@ const buildJobsUrl = ({ baseUrl, search = "", category = "", limit = 40 }) => {
   return queryString ? `${baseUrl}?${queryString}` : baseUrl;
 };
 
+const getJobIdentity = (job = {}) => {
+  const external = safeText(job.id).trim();
+  if (external) return external.toLowerCase();
+
+  return [job.company, job.title, job.location]
+    .map((value) => safeText(value).trim().toLowerCase())
+    .filter(Boolean)
+    .join("|");
+};
+
+const mergeJobs = (jobGroups = [], limit = 40) => {
+  const seen = new Set();
+  const merged = [];
+
+  jobGroups.flat().forEach((job) => {
+    const normalized = normalizeJob(job);
+    const key = getJobIdentity(normalized);
+
+    if (!normalized.title || !normalized.company || !key || seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    merged.push(normalized);
+  });
+
+  return merged.slice(0, Number(limit) || 40);
+};
+
 export const fetchJobs = async ({
   search = "",
   searchTerm = "",
@@ -504,46 +599,64 @@ export const fetchJobs = async ({
 } = {}) => {
   const finalSearch = search || searchTerm;
 
-  const urls = CUSTOM_API_BASE_URL
-    ? [
-        buildJobsUrl({
-          baseUrl: `${CUSTOM_API_BASE_URL.replace(/\/$/, "")}/api/jobs`,
-          search: finalSearch,
-          category,
-          limit,
-        }),
-        buildJobsUrl({
-          baseUrl: REMOTIVE_API_URL,
-          search: finalSearch,
-          category,
-          limit,
-        }),
-      ]
-    : [
-        buildJobsUrl({
-          baseUrl: REMOTIVE_API_URL,
-          search: finalSearch,
-          category,
-          limit,
-        }),
-      ];
+  const urls = [
+    buildJobsUrl({
+      baseUrl: apiUrl("/api/jobs"),
+      search: finalSearch,
+      category,
+      limit,
+    }),
+    buildJobsUrl({
+      baseUrl: REMOTIVE_API_URL,
+      search: finalSearch,
+      category,
+      limit,
+    }),
+  ];
 
-  for (const url of urls) {
-    try {
-      const data = await fetchFromUrl(url, timeout);
+  const results = await Promise.allSettled(
+    urls.map((url) => fetchFromUrl(url, timeout))
+  );
 
-      const jobs = getJobsArrayFromResponse(data)
-        .map(normalizeJob)
-        .filter((job) => job.title && job.company)
-        .slice(0, Number(limit) || 40);
+  const jobGroups = results
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => getJobsArrayFromResponse(result.value));
 
-      if (jobs.length > 0) return jobs;
-    } catch {
-      // Try next source, then fallback to demo jobs.
-    }
+  const mergedJobs = mergeJobs(jobGroups, limit);
+
+  if (mergedJobs.length > 0) {
+    return mergedJobs;
   }
 
   return DEMO_JOBS.slice(0, Number(limit) || 40);
+};
+
+export const fetchApiKeys = async () => {
+  const data = await apiRequest("/api/api-keys", {
+    headers: authHeaders(),
+  });
+
+  return data?.data || [];
+};
+
+export const createApiKey = async (name = "HireFlow API Key") => {
+  const data = await apiRequest("/api/api-keys", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  return data;
+};
+
+export const revokeApiKey = async (id) => {
+  return apiRequest(`/api/api-keys/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
 };
 
 export const filterJobs = (
@@ -562,7 +675,7 @@ export const filterJobs = (
     const jobCategory = safeText(job.category).toLowerCase();
     const jobType = normalizeType(job.jobType || job.type);
     const description = safeText(job.description).toLowerCase();
-    const tags = Array.isArray(job.tags) ? job.tags : [];
+    const tags = normalizeTags(job.tags);
 
     const matchesSearch =
       !query ||
@@ -616,9 +729,7 @@ export const getCategories = (jobs = DEMO_JOBS) => {
 export const getJobTypes = (jobs = DEMO_JOBS) => {
   return [
     "All Types",
-    ...new Set(
-      jobs.map((job) => job.jobType || job.type).filter(Boolean)
-    ),
+    ...new Set(jobs.map((job) => job.jobType || job.type).filter(Boolean)),
   ];
 };
 
@@ -631,16 +742,14 @@ export const fetchJobById = async (id) => {
 
   const demoJob = getJobById(id);
 
-  if (CUSTOM_API_BASE_URL) {
-    try {
-      const data = await fetchFromUrl(
-        `${CUSTOM_API_BASE_URL.replace(/\/$/, "")}/api/jobs/${id}`
-      );
+  try {
+    const data = await fetchFromUrl(apiUrl(`/api/jobs/${id}`));
 
-      if (data?.data) return normalizeJob(data.data);
-    } catch {
-      // Fall back below.
+    if (data?.data) {
+      return normalizeJob(data.data);
     }
+  } catch {
+    // Fall back below.
   }
 
   return demoJob;

@@ -1,23 +1,23 @@
 @import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&display=swap");
 
 :root {
-  --bg: #0a0a0f;
-  --bg2: #0f0f16;
-  --bg3: #13131c;
+  --bg: #f3f2ef;
+  --bg2: #eef3f8;
+  --bg3: #e7eef6;
 
-  --surface: #181824;
-  --surface2: #1e1e2e;
-  --surface3: #242438;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --surface3: #eef3f8;
 
-  --border: rgba(255, 255, 255, 0.06);
-  --border2: rgba(255, 255, 255, 0.1);
-  --border3: rgba(255, 255, 255, 0.16);
+  --border: #d7dce1;
+  --border2: #c7d0d9;
+  --border3: #aeb9c4;
 
-  --violet: #7c5cfc;
-  --violet-lt: #9b7dff;
-  --violet-dk: #5a3dd8;
-  --violet-bg: rgba(124, 92, 252, 0.12);
-  --violet-glow: rgba(124, 92, 252, 0.2);
+  --violet: #0a66c2;
+  --violet-lt: #1d74d1;
+  --violet-dk: #004182;
+  --violet-bg: rgba(10, 102, 194, 0.1);
+  --violet-glow: rgba(10, 102, 194, 0.16);
 
   --green: #10b981;
   --green-bg: rgba(16, 185, 129, 0.12);
@@ -25,37 +25,38 @@
   --amber: #f59e0b;
   --amber-bg: rgba(245, 158, 11, 0.12);
 
-  --cyan: #06b6d4;
-  --cyan-bg: rgba(6, 182, 212, 0.12);
+  --cyan: #0077b5;
+  --cyan-bg: rgba(0, 119, 181, 0.1);
 
   --rose: #f43f5e;
   --rose-bg: rgba(244, 63, 94, 0.1);
 
-  --text: #eeedf5;
-  --text2: #b8b5ce;
-  --text3: #8e8ba8;
-  --text4: #54516e;
+  --text: #1f2328;
+  --text2: #4b5563;
+  --text3: #6b7280;
+  --text4: #9ca3af;
 
   --font-display: "Syne", sans-serif;
   --font-body: "Manrope", sans-serif;
 
   --r-xs: 6px;
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 18px;
-  --r-xl: 24px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 8px;
+  --r-xl: 8px;
   --r-pill: 999px;
 
-  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 40px rgba(124, 92, 252, 0.15);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.1);
+  --shadow-glow: 0 0 0 4px rgba(10, 102, 194, 0.12);
 }
 
-/* RESET */
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  letter-spacing: 0;
 }
 
 html,
@@ -74,10 +75,7 @@ html {
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(124, 92, 252, 0.14), transparent 34rem),
-    radial-gradient(circle at top right, rgba(6, 182, 212, 0.08), transparent 32rem),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 15px;
@@ -87,7 +85,7 @@ body {
   overflow-x: hidden;
 }
 
-/* APP HEIGHT FIX */
+
 #root {
   min-height: 100vh;
   display: flex;
@@ -118,7 +116,7 @@ main,
   width: 100%;
 }
 
-/* BASE ELEMENTS */
+
 a {
   color: inherit;
   text-decoration: none;
@@ -150,7 +148,7 @@ canvas {
   margin: 0 auto;
 }
 
-/* Prevent scroll target hiding behind sticky navbar */
+
 .hero,
 .about,
 .why,
@@ -177,7 +175,7 @@ canvas {
   background: var(--violet);
 }
 
-/* ANIMATIONS */
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -293,7 +291,7 @@ canvas {
   }
 }
 
-/* MOBILE GLOBAL FIX */
+
 @media (max-width: 768px) {
   body {
     font-size: 14px;
@@ -312,7 +310,7 @@ canvas {
   }
 }
 
-/* REDUCED MOTION */
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

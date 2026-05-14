@@ -1,0 +1,227 @@
+{
+  "info": {
+    "name": "HireFlow API",
+    "description": "Complete API testing collection for HireFlow job platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"job_seeker\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user. Role can be 'job_seeker', 'employer', or 'admin'. Save the token returned."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login with email and password. Save the token returned for authenticated requests."
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/auth/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Get current authenticated user profile. Requires valid JWT token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "Get All Jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/jobs?search=developer&category=engineering&limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "jobs"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "developer"
+                },
+                {
+                  "key": "category",
+                  "value": "engineering"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all jobs. Query parameters are optional: search, category, limit, offset"
+          }
+        },
+        {
+          "name": "Get Job by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/jobs/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "jobs", "1"]
+            },
+            "description": "Get a specific job by ID"
+          }
+        },
+        {
+          "name": "Create Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior React Developer\",\n  \"company\": \"TechCorp\",\n  \"category\": \"engineering\",\n  \"jobType\": \"full-time\",\n  \"location\": \"Remote\",\n  \"description\": \"We are looking for an experienced React developer with 5+ years experience\",\n  \"fullDescription\": \"We are looking for an experienced React developer with 5+ years experience. Must know TypeScript, state management, and have shipped production apps.\",\n  \"salary\": \"$100k-$150k\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/jobs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "jobs"]
+            },
+            "description": "Create a new job listing. Requires 'employer' or 'admin' role. Token required."
+          }
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior React Developer (Updated)\",\n  \"salary\": \"$120k-$160k\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/jobs/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "jobs", "1"]
+            },
+            "description": "Update a job listing. Only owner, employer, or admin can update. Token required."
+          }
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/jobs/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "jobs", "1"]
+            },
+            "description": "Delete a job listing. Only owner, employer, or admin can delete. Token required."
+          }
+        },
+        {
+          "name": "Get My Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/jobs/my/jobs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "jobs", "my", "jobs"]
+            },
+            "description": "Get all jobs posted by current user. Token required."
+          }
+        }
+      ]
+    }
+  ]
+}

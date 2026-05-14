@@ -4,12 +4,19 @@ import Home from "./pages/Home";
 import JobDetails from "./pages/JobDetails";
 import {
   AboutPage,
+  ApiKeysPage,
   CandidatesPage,
   CategoriesPage,
   CVPostPage,
+  MessagesPage,
+  NetworkPage,
   NewsPage,
   PostJobPage,
+  ProfilePage,
 } from "./pages/InfoPages";
+import LoginPage from "./pages/Login";
+import SignupPage from "./pages/Signup";
+import AdminDashboard from "./pages/AdminDashboard";
 import "./App.css";
 
 const VALID_PAGES = new Set([
@@ -18,14 +25,23 @@ const VALID_PAGES = new Set([
   "about",
   "categories",
   "candidates",
+  "network",
+  "messages",
+  "profile",
+  "api-keys",
   "news",
   "post-job",
   "cv-post",
+  "login",
+  "signup",
+  "register",
+  "admin",
 ]);
 
 const SAVED_JOBS_KEY = "hireflow_saved_jobs";
 
 function getSafePage(page) {
+  if (page === "register") return "signup";
   return VALID_PAGES.has(page) ? page : "home";
 }
 
@@ -163,6 +179,7 @@ function App() {
           onBack={handleBackToJobs}
           isSaved={savedIds.has(selectedJob.id)}
           onSave={handleSave}
+          onNavigate={handleNavigate}
         />
       );
     }
@@ -182,14 +199,35 @@ function App() {
       case "candidates":
         return <CandidatesPage onNavigate={handleNavigate} />;
 
+      case "network":
+        return <NetworkPage onNavigate={handleNavigate} />;
+
+      case "messages":
+        return <MessagesPage onNavigate={handleNavigate} />;
+
+      case "profile":
+        return <ProfilePage onNavigate={handleNavigate} />;
+
+      case "api-keys":
+        return <ApiKeysPage onNavigate={handleNavigate} />;
+
       case "news":
         return <NewsPage onNavigate={handleNavigate} />;
 
       case "post-job":
         return <PostJobPage onNavigate={handleNavigate} />;
 
+      case "login":
+        return <LoginPage onNavigate={handleNavigate} />;
+
+      case "signup":
+        return <SignupPage onNavigate={handleNavigate} />;
+
       case "cv-post":
         return <CVPostPage onNavigate={handleNavigate} />;
+
+      case "admin":
+        return <AdminDashboard onNavigate={handleNavigate} />;
 
       case "home":
       case "jobs":
