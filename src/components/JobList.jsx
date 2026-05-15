@@ -1,46 +1,6 @@
 import JobCard from "./JobCard";
 
 function JobList({ jobs = [], savedIds, onSave, onSelect }) {
-const jobs = [
-  {
-    id: 1,
-    title: 'Frontend Developer',
-    company: 'HireFlow',
-    location: 'Nairobi, Kenya',
-    type: 'Full-time',
-    salary: 'KES 80k - 120k',
-    postedAt: 'Posted today',
-    description:
-      'Build simple, responsive user interfaces for candidates and hiring teams.',
-    tags: ['React', 'CSS', 'JavaScript'],
-  },
-  {
-    id: 2,
-    title: 'Junior UI Engineer',
-    company: 'Talent Hub',
-    location: 'Remote',
-    type: 'Contract',
-    salary: 'KES 45k - 70k',
-    postedAt: 'Posted 2 days ago',
-    description:
-      'Support the product team by turning job data into clean reusable components.',
-    tags: ['React', 'Responsive UI'],
-  },
-  {
-    id: 3,
-    title: 'Junior Data Scientist',
-    company: 'Safaricom',
-    location: 'Remote',
-    type: 'Contract',
-    salary: 'KES 45k - 70k',
-    postedAt: 'Posted 2 days ago',
-    description:
-      'Support the product team by turning job data into clean reusable components.',
-    tags: ['Python', 'Responsive UI','Django'],
-  },
-]
-
-function JobList() {
   if (jobs.length === 0) {
     return (
       <div className="empty-state">
