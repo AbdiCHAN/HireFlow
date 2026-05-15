@@ -1171,14 +1171,13 @@
   background: var(--bg);
 }
 
-.detail-grid {
+.detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 22px;
   align-items: start;
 }
-
-.back-btn {
+.detail-back {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1187,8 +1186,7 @@
   font-size: 14px;
   font-weight: 900;
 }
-
-.back-btn:hover {
+.detail-back:hover {
   color: var(--cyan);
 }
 
@@ -1250,7 +1248,7 @@
   line-height: 1.18;
 }
 
-.detail-card__chips {
+.detail-card__meta {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1258,8 +1256,7 @@
   padding-bottom: 24px;
   border-bottom: 1px solid var(--border);
 }
-
-.detail-card__chip {
+.detail-card__tag {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1296,7 +1293,7 @@
   margin-top: 12px;
 }
 
-.detail-sidebar {
+.detail-side {
   display: flex;
   flex-direction: column;
   gap: 16px;
