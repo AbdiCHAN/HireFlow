@@ -1,0 +1,152 @@
+.detail-page {
+  padding-top: 28px;
+  padding-bottom: 48px;
+}
+
+.detail-back,
+.detail-side__apply,
+.detail-side__save {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.detail-back {
+  margin-bottom: 18px;
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
+}
+
+.detail-card,
+.detail-side {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.detail-card {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+}
+
+.detail-card__logo {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--violet);
+  color: #fff;
+  font-weight: 900;
+}
+
+.detail-card__company {
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.detail-card__title {
+  color: var(--text);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.detail-card__meta,
+.detail-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-card__meta div,
+.detail-card__tag {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-card__section {
+  margin-top: 10px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.detail-card__text {
+  color: var(--text2);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.detail-side {
+  align-self: start;
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.detail-side__salary {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-side__salary div:first-child {
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.detail-side__salary div:last-child {
+  color: var(--green);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.detail-side__apply,
+.detail-side__save {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-align: center;
+}
+
+.detail-side__apply {
+  background: var(--violet);
+  color: #fff;
+}
+
+.detail-side__save {
+  background: var(--surface2);
+  color: var(--text2);
+}
+
+.detail-side__save--saved {
+  background: var(--rose-bg);
+  color: var(--rose);
+}
+
+.detail-empty {
+  color: var(--text3);
+}
+
+@media (max-width: 840px) {
+  .detail-layout {
+    grid-template-columns: 1fr;
+  }
+}
