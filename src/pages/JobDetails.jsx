@@ -1,98 +1,118 @@
-import { LOGO_COLORS, normalizeType } from "../services/api";
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { applyToJob, openApplyUrl } from "../services/api";
 
-function getInitials(n = "") {
-  return n.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+function initials(name = "HF") {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
 
-function badgeLabel(t = "") {
-  const m = { "full-time": "Full-time", "contract": "Contract", "part-time": "Part-time", "freelance": "Freelance", "remote": "Remote" };
-  return m[normalizeType(t)] || t;
+function titleCase(value = "") {
+  return value.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function JobDetails({ job, onBack, isSaved, onSave }) {
-  if (!job) return (
-    <div className="detail-page">
-      <div className="detail-back" onClick={onBack} role="button" tabIndex={0}>Back to jobs</div>
-      <div className="detail-empty">Job not found.</div>
-    </div>
-  );
+function JobDetails({ job, onBack, isSaved, onSave, onNavigate }) {
+  const { isAuthenticated } = useAuth();
+  const [message, setMessage] = useState("");
 
-  const lc = LOGO_COLORS[job.id % LOGO_COLORS.length];
-  const type = job.jobType || "full-time";
+  if (!job) {
+    return (
+      <div className="workspace-page">
+        <section className="workspace-card">
+          <h1>Job not found.</h1>
+          <button className="btn btn--primary" type="button" onClick={onBack}>
+            Back to jobs
+          </button>
+        </section>
+      </div>
+    );
+  }
+
+  const apply = async () => {
+    if (!isAuthenticated) {
+      onNavigate("login");
+      return;
+    }
+
+    if (job.source !== "local") {
+      openApplyUrl(job);
+      return;
+    }
+
+    try {
+      await applyToJob(job.id, `I am interested in ${job.title} at ${job.company}.`);
+      setMessage("Application submitted.");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  };
 
   return (
     <div className="detail-page">
-      <div className="detail-back" onClick={onBack} role="button" tabIndex={0}>Back to jobs</div>
+      <button className="detail-back" type="button" onClick={onBack}>
+        Back to jobs
+      </button>
 
-      <div className="detail-layout">
-        <div className="detail-card">
+      <section className="detail-layout">
+        <article className="detail-card">
           <div className="detail-card__banner" />
-
-          <div className="detail-card__logo" style={job.companyLogo ? { backgroundColor: 'var(--surface2)', backgroundImage: `url(${job.companyLogo})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' } : { background: lc.bg, color: lc.color }}>
-            {!job.companyLogo && getInitials(job.company)}
-          </div>
-
-          <div className="detail-card__company">{job.company}</div>
-          <div className="detail-card__title">{job.title}</div>
-
+          <div className="detail-card__logo">{initials(job.company)}</div>
+          <p className="eyebrow">{job.company}</p>
+          <h1>{job.title}</h1>
           <div className="detail-card__meta">
-            <div className="detail-card__tag">{job.location}</div>
-            <div className="detail-card__tag">{badgeLabel(type)}</div>
-            {job.postedAt && <div className="detail-card__tag">{job.postedAt}</div>}
-            {job.source && <div className="detail-card__tag">via {job.source}</div>}
+            <span>{job.location || "Remote"}</span>
+            <span>{titleCase(job.jobType || "remote")}</span>
+            {job.postedAt && <span>{job.postedAt}</span>}
+            {job.source && <span>via {job.source}</span>}
           </div>
 
-          <div className="detail-card__section">About the role</div>
-          <div className="detail-card__text">{job.fullDescription || job.description}</div>
+          <h2>About the role</h2>
+          <p>{job.fullDescription || job.description}</p>
 
           {job.tags?.length > 0 && (
             <>
-              <div className="detail-card__section">Skills &amp; Technologies</div>
-              <div className="detail-card__tags">
-                {job.tags.map(tag => <div className="detail-card__tag" key={tag}>{tag}</div>)}
+              <h2>Skills and tools</h2>
+              <div className="tag-row">
+                {job.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
               </div>
             </>
           )}
-        </div>
+        </article>
 
-        <div className="detail-side">
-          {job.salary && (
-            <div className="detail-side__salary">
-              <div className="detail-side__salary-lbl">Compensation</div>
-              <div className="detail-side__salary-val">{job.salary}</div>
-            </div>
-          )}
-
-          <div className="detail-side__apply" onClick={() => job.url && job.url !== "#" && window.open(job.url, "_blank")} role="button" tabIndex={0}>Apply Now</div>
-
-          <div className={`detail-side__save ${isSaved ? "detail-side__save--saved" : ""}`} onClick={() => onSave?.(job.id)} role="button" tabIndex={0}>
-            {isSaved ? "Saved" : "Save Job"}
+        <aside className="detail-side">
+          <div className="detail-side__salary">
+            <span>Compensation</span>
+            <strong>{job.salary || "Shared during interview"}</strong>
           </div>
-
-          <div className="detail-side__rows">
-            <div className="detail-side__row">
-              <div className="detail-side__row-key">Job Type</div>
-              <div className="detail-side__row-val" style={{ textTransform: 'capitalize' }}>{badgeLabel(type)}</div>
+          <button className="btn btn--primary" type="button" onClick={apply}>
+            Apply now
+          </button>
+          <button className="btn btn--outline" type="button" onClick={() => onSave?.(job.id)}>
+            {isSaved ? "Saved" : "Save job"}
+          </button>
+          {message && <p className="form-message">{message}</p>}
+          <dl className="detail-facts">
+            <div>
+              <dt>Job type</dt>
+              <dd>{titleCase(job.jobType || "remote")}</dd>
             </div>
-
-            <div className="detail-side__row">
-              <div className="detail-side__row-key">Location</div>
-              <div className="detail-side__row-val" style={{ textTransform: 'capitalize' }}>{job.location}</div>
+            <div>
+              <dt>Category</dt>
+              <dd>{titleCase(job.category || "general")}</dd>
             </div>
-
-            <div className="detail-side__row">
-              <div className="detail-side__row-key">Category</div>
-              <div className="detail-side__row-val" style={{ textTransform: 'capitalize' }}>{job.rawCategory || job.category || 'General'}</div>
+            <div>
+              <dt>Source</dt>
+              <dd>{job.source || "HireFlow"}</dd>
             </div>
-          </div>
-
-          <div className="detail-side" style={{ background: 'linear-gradient(135deg,#100E2E,#1A1648)', border: '1px solid rgba(124,92,252,.25)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--violet-lt)', marginBottom: 8 }}>Similar Roles</div>
-            <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.65, marginBottom: 16 }}>Discover more {job.rawCategory || job.category} positions across top companies globally.</div>
-            <div onClick={onBack} className="detail-back" role="button" tabIndex={0} style={{ width: '100%', textAlign: 'center' }}>Browse All Jobs</div>
-          </div>
-        </div>
-      </div>
+          </dl>
+        </aside>
+      </section>
     </div>
   );
 }

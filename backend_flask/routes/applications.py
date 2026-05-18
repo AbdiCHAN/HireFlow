@@ -1,243 +1,203 @@
-"""
-Route registration for job applications
-"""
-from flask import request, jsonify
-from extensions import db
-from models import JobApplication, Job, CV
-from auth_utils import authenticate_token, authorize_role
+from __future__ import annotations
+
+from typing import Any
+
+from flask import Blueprint, jsonify, request
+
+from ..auth_utils import get_current_user, get_db_connection, token_required
 
 
-VALID_STATUSES = {'submitted', 'reviewing', 'shortlisted', 'rejected', 'hired'}
+applications_bp = Blueprint("applications", __name__)
+VALID_STATUSES = {"submitted", "reviewing", "accepted", "rejected"}
 
 
-def register_application_routes(app):
-    """Register all application routes to Flask app"""
+def serialize_application(row) -> dict[str, Any]:
+    app = dict(row)
 
-    @app.route('/api/applications', methods=['POST'])
-    @authenticate_token
-    @authorize_role('job_seeker', 'employer', 'admin')
-    def create_application():
-        """Apply for a job"""
-        try:
-            user = request.user
-            data = request.get_json() or {}
+    return {
+        "id": app["id"],
+        "userId": app["user_id"],
+        "jobId": app["job_id"],
+        "cvId": app.get("cv_id"),
+        "coverLetter": app.get("cover_letter") or "",
+        "status": app.get("status") or "submitted",
+        "createdAt": app.get("created_at"),
+        "updatedAt": app.get("updated_at"),
+        "jobTitle": app.get("job_title"),
+        "company": app.get("company"),
+        "jobLocation": app.get("job_location"),
+        "applicantName": app.get("applicant_name"),
+        "applicantEmail": app.get("applicant_email"),
+        "postedByUserId": app.get("employer_id"),
+    }
 
-            job_id = data.get('jobId')
-            cover_note = data.get('coverNote', '').strip()
 
-            if not job_id or not isinstance(job_id, int):
-                return jsonify({'error': 'Valid jobId required'}), 400
+def application_query(where_sql: str = "", values: tuple[Any, ...] = ()):
+    with get_db_connection() as conn:
+        return conn.execute(
+            f"""
+            SELECT
+                applications.*,
+                jobs.title AS job_title,
+                jobs.company,
+                jobs.location AS job_location,
+                jobs.employer_id,
+                users.full_name AS applicant_name,
+                users.email AS applicant_email
+            FROM applications
+            JOIN jobs ON jobs.id = applications.job_id
+            JOIN users ON users.id = applications.user_id
+            {where_sql}
+            ORDER BY datetime(applications.created_at) DESC, applications.id DESC
+            """,
+            values,
+        ).fetchall()
 
-            job = Job.query.get(job_id)
-            if not job:
-                return jsonify({'error': 'Job not found'}), 404
 
-            existing = JobApplication.query.filter_by(
-                user_id=user.get('id'),
-                job_id=job_id
-            ).first()
+@applications_bp.post("/")
+@token_required
+def create_application():
+    user = get_current_user()
+    data = request.get_json(silent=True) or {}
 
-            if existing:
-                return jsonify({
-                    'error': 'Already applied for this job',
-                    'data': {
-                        'id': existing.id,
-                        'userId': existing.user_id,
-                        'jobId': existing.job_id,
-                        'status': existing.status
-                    }
-                }), 409
+    try:
+        job_id = int(data.get("jobId") or data.get("job_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Valid jobId is required"}), 400
 
-            cv = CV.query.filter_by(user_id=user.get('id')).first()
+    cover_letter = str(data.get("coverLetter") or data.get("coverNote") or "").strip()
 
-            application = JobApplication(
-                user_id=user.get('id'),
-                job_id=job_id,
-                cv_id=cv.id if cv else None,
-                cover_note=cover_note,
-                status='submitted'
-            )
+    with get_db_connection() as conn:
+        job = conn.execute("SELECT id FROM jobs WHERE id = ?", (job_id,)).fetchone()
 
-            db.session.add(application)
-            db.session.commit()
+        if not job:
+            return jsonify({"error": "Job not found"}), 404
 
-            message = 'Application submitted successfully' if cv else 'Application submitted. Upload a CV to strengthen it.'
+        existing = conn.execute(
+            "SELECT id FROM applications WHERE user_id = ? AND job_id = ?",
+            (user["id"], job_id),
+        ).fetchone()
 
+        if existing:
             return jsonify({
-                'message': message,
-                'data': {
-                    'id': application.id,
-                    'userId': application.user_id,
-                    'jobId': application.job_id,
-                    'cvId': application.cv_id,
-                    'coverNote': application.cover_note,
-                    'status': application.status,
-                    'createdAt': application.created_at.isoformat(),
-                    'updatedAt': application.updated_at.isoformat()
-                }
-            }), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+                "error": "Already applied for this job",
+                "data": {"id": existing["id"], "jobId": job_id, "status": "submitted"},
+            }), 409
+
+        cv = conn.execute(
+            "SELECT id FROM cvs WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+            (user["id"],),
+        ).fetchone()
+
+        cursor = conn.execute(
+            """
+            INSERT INTO applications (user_id, job_id, cv_id, cover_letter, status, updated_at)
+            VALUES (?, ?, ?, ?, 'submitted', CURRENT_TIMESTAMP)
+            """,
+            (user["id"], job_id, cv["id"] if cv else None, cover_letter),
+        )
+
+    created = application_query("WHERE applications.id = ?", (cursor.lastrowid,))[0]
+
+    return jsonify({
+        "message": "Application submitted successfully",
+        "data": serialize_application(created),
+    }), 201
 
 
-    @app.route('/api/applications/my', methods=['GET'])
-    @authenticate_token
-    @authorize_role('job_seeker', 'admin')
-    def get_my_applications():
-        """Get authenticated user's applications"""
-        try:
-            user = request.user
-            applications = JobApplication.query.filter_by(user_id=user.get('id')).all()
+@applications_bp.get("/my")
+@token_required
+def my_applications():
+    user = get_current_user()
+    rows = application_query("WHERE applications.user_id = ?", (user["id"],))
 
-            return jsonify({
-                'data': [{
-                    'id': app.id,
-                    'userId': app.user_id,
-                    'jobId': app.job_id,
-                    'cvId': app.cv_id,
-                    'coverNote': app.cover_note,
-                    'status': app.status,
-                    'createdAt': app.created_at.isoformat(),
-                    'updatedAt': app.updated_at.isoformat(),
-                    'jobTitle': app.job.title if app.job else None,
-                    'company': app.job.company if app.job else None,
-                    'jobLocation': app.job.location if app.job else None
-                } for app in applications]
-            }), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+    return jsonify({"data": [serialize_application(row) for row in rows]})
 
 
-    @app.route('/api/applications', methods=['GET'])
-    @authenticate_token
-    @authorize_role('employer', 'admin')
-    def get_applications():
-        """Get applications — employer sees their jobs', admin sees all"""
-        try:
-            user = request.user
+@applications_bp.get("/")
+@token_required
+def list_applications():
+    user = get_current_user()
 
-            if user.get('role') == 'admin':
-                applications = JobApplication.query.all()
-            else:
-                applications = db.session.query(JobApplication).join(Job).filter(
-                    Job.posted_by_user_id == user.get('id')
-                ).all()
+    if user["role"] == "admin":
+        rows = application_query()
+    elif user["role"] == "employer":
+        rows = application_query("WHERE jobs.employer_id = ?", (user["id"],))
+    else:
+        rows = application_query("WHERE applications.user_id = ?", (user["id"],))
 
-            return jsonify({
-                'data': [{
-                    'id': app.id,
-                    'userId': app.user_id,
-                    'jobId': app.job_id,
-                    'cvId': app.cv_id,
-                    'coverNote': app.cover_note,
-                    'status': app.status,
-                    'createdAt': app.created_at.isoformat(),
-                    'updatedAt': app.updated_at.isoformat(),
-                    'applicantName': app.applicant.username if app.applicant else None,
-                    'applicantEmail': app.applicant.email if app.applicant else None,
-                    'jobTitle': app.job.title if app.job else None,
-                    'company': app.job.company if app.job else None,
-                    'jobLocation': app.job.location if app.job else None,
-                    'postedByUserId': app.job.posted_by_user_id if app.job else None,
-                    'cvFullName': app.cv.full_name if app.cv else None,
-                    'cvEmail': app.cv.email if app.cv else None,
-                    'cvPhone': app.cv.phone if app.cv else None,
-                    'currentRole': app.cv.current_role if app.cv else None,
-                    'expectedSalary': app.cv.expected_salary if app.cv else None,
-                    'cvFilePath': app.cv.cv_file_path if app.cv else None
-                } for app in applications]
-            }), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+    return jsonify({"data": [serialize_application(row) for row in rows]})
 
 
-    @app.route('/api/applications/<int:app_id>', methods=['GET'])
-    @authenticate_token
-    def get_application(app_id):
-        """Get single application details"""
-        try:
-            user = request.user
-            application = JobApplication.query.get(app_id)
+@applications_bp.patch("/<int:application_id>/status")
+@token_required
+def update_status(application_id: int):
+    user = get_current_user()
+    data = request.get_json(silent=True) or {}
+    status = str(data.get("status") or "").strip().lower()
 
-            if not application:
-                return jsonify({'error': 'Application not found'}), 404
+    if status not in VALID_STATUSES:
+        return jsonify({"error": "Invalid application status"}), 400
 
-            if (application.user_id != user.get('id') and
-                application.job.posted_by_user_id != user.get('id') and
-                user.get('role') != 'admin'):
-                return jsonify({'error': 'Insufficient permissions'}), 403
+    with get_db_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT applications.*, jobs.employer_id
+            FROM applications
+            JOIN jobs ON jobs.id = applications.job_id
+            WHERE applications.id = ?
+            """,
+            (application_id,),
+        ).fetchone()
 
-            return jsonify({
-                'data': {
-                    'id': application.id,
-                    'userId': application.user_id,
-                    'jobId': application.job_id,
-                    'cvId': application.cv_id,
-                    'coverNote': application.cover_note,
-                    'status': application.status,
-                    'createdAt': application.created_at.isoformat(),
-                    'updatedAt': application.updated_at.isoformat()
-                }
-            }), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        if not row:
+            return jsonify({"error": "Application not found"}), 404
 
+        if row["employer_id"] != user["id"] and user["role"] != "admin":
+            return jsonify({"error": "Insufficient permissions"}), 403
 
-    @app.route('/api/applications/<int:app_id>/status', methods=['PATCH'])
-    @authenticate_token
-    @authorize_role('employer', 'admin')
-    def update_application_status(app_id):
-        """Update application status"""
-        try:
-            user = request.user
-            application = JobApplication.query.get(app_id)
+        conn.execute(
+            """
+            UPDATE applications
+            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (status, application_id),
+        )
 
-            if not application:
-                return jsonify({'error': 'Application not found'}), 404
+    updated = application_query("WHERE applications.id = ?", (application_id,))[0]
 
-            if application.job.posted_by_user_id != user.get('id') and user.get('role') != 'admin':
-                return jsonify({'error': 'Insufficient permissions'}), 403
-
-            new_status = (request.get_json() or {}).get('status')
-
-            if new_status not in VALID_STATUSES:
-                return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUSES)}'}), 400
-
-            application.status = new_status
-            db.session.commit()
-
-            return jsonify({
-                'message': 'Application status updated',
-                'data': {
-                    'id': application.id,
-                    'status': application.status,
-                    'updatedAt': application.updated_at.isoformat()
-                }
-            }), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+    return jsonify({
+        "message": "Application status updated",
+        "data": serialize_application(updated),
+    })
 
 
-    @app.route('/api/applications/<int:app_id>', methods=['DELETE'])
-    @authenticate_token
-    def delete_application(app_id):
-        """Delete application (owner or admin only)"""
-        try:
-            user = request.user
-            application = JobApplication.query.get(app_id)
+@applications_bp.delete("/<int:application_id>")
+@token_required
+def delete_application(application_id: int):
+    user = get_current_user()
 
-            if not application:
-                return jsonify({'error': 'Application not found'}), 404
+    with get_db_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT applications.*, jobs.employer_id
+            FROM applications
+            JOIN jobs ON jobs.id = applications.job_id
+            WHERE applications.id = ?
+            """,
+            (application_id,),
+        ).fetchone()
 
-            if application.user_id != user.get('id') and user.get('role') != 'admin':
-                return jsonify({'error': 'Insufficient permissions'}), 403
+        if not row:
+            return jsonify({"error": "Application not found"}), 404
 
-            db.session.delete(application)
-            db.session.commit()
+        is_applicant = row["user_id"] == user["id"]
+        is_employer = row["employer_id"] == user["id"]
 
-            return jsonify({'message': 'Application deleted'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+        if not is_applicant and not is_employer and user["role"] != "admin":
+            return jsonify({"error": "Insufficient permissions"}), 403
+
+        conn.execute("DELETE FROM applications WHERE id = ?", (application_id,))
+
+    return jsonify({"message": "Application deleted"})

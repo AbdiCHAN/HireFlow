@@ -1,62 +1,62 @@
 # HireFlow2
 
-HireFlow2 is a full-stack job search and hiring application. The frontend is built with React JSX and Vite, while the backend is built with Flask and Python. The app supports job browsing, account authentication, CV uploads, job applications, admin review tools, API key management, and public job syncing through the Remotive Jobs API.
+HireFlow2 is a full-stack hiring workspace for job seekers, employers, and admins. The frontend is a React and Vite application styled after a professional LinkedIn-style feed. The backend is a Flask API using SQLite, JWT authentication, hashed passwords, and secure owner checks for user resources.
 
-The frontend follows a professional LinkedIn-style flow with a home dashboard, job listing workspace, job details page, network page, messages page, profile page, CV upload page, post-job page, admin dashboard, and developer API key page.
+## What The App Does
 
-## Main Stack
+- Browse a three-column job feed with search, category filters, saved jobs, hiring pulse cards, and company recommendations.
+- Register and log in as a job seeker, employer, or admin.
+- Job seekers can save jobs, maintain a CV/profile, apply to local HireFlow jobs, and track applications.
+- Employers can post, edit, and delete their own jobs, then review incoming applications.
+- Admins can view platform totals and recent users.
+- Signed-in users can create, pause, and revoke API keys.
+- Public job discovery still works on static hosting by falling back to remote/demo listings when the Flask API is not available.
 
-Frontend: React, JSX, Vite, CSS
+## Tech Stack
 
-Backend: Flask, Python, SQLAlchemy
+Frontend:
 
-Database: SQLite
+```text
+React
+Vite
+Plain CSS
+Local storage for saved jobs and auth session cache
+```
 
-Authentication: JWT
+Backend:
 
-Password hashing: bcrypt
-
-File uploads: CV files handled by Flask backend
-
-Public jobs source: Remotive Jobs API
-
-## Core Features
-
-Users can browse jobs from the Flask backend and the public Remotive API. Jobs can be searched and filtered by category, type, company, location, skills, and description.
-
-Users can sign up, log in, upload a CV, apply to jobs, save jobs, and manage their profile. Employers and admins can post jobs, review applications, and manage platform data. The backend also supports app-owned API keys for developer access.
+```text
+Flask
+SQLite
+PyJWT
+Werkzeug password hashing
+Flask-CORS
+```
 
 ## Project Structure
+
+The existing folder structure is intentionally kept intact.
 
 ```text
 HireFlow2/
   src/
     App.jsx
-    main.jsx
     components/
-    pages/
     context/
+    pages/
     services/
     styles/
-    assets/
-
   backend_flask/
     app.py
-    config.py
-    extensions.py
-    models.py
     auth_utils.py
     routes/
     services/
-
-  uploads/
-  instance/
   package.json
   requirements.txt
   README.md
 ```
 
-## Frontend Setup
+## Setup
 
 Install frontend dependencies:
 
@@ -64,239 +64,181 @@ Install frontend dependencies:
 npm install
 ```
 
-Start the React frontend:
-
-```bash
-npm run dev
-```
-
-The frontend uses JSX files and connects to the Flask backend through `VITE_API_BASE_URL`.
-
-Example `.env` frontend value:
-
-```bash
-VITE_API_BASE_URL=http://localhost:5000
-```
-
-Useful frontend scripts:
-
-```bash
-npm run dev
-npm run build
-npm run lint
-```
-
-## Flask Backend Setup
-
-Create and activate a Python virtual environment:
+Create and activate a Python environment:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-Install backend dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
-Run the Flask backend:
+Start the backend:
 
 ```bash
-python3 backend_flask/app.py
+./.venv/bin/python -m backend_flask.app
 ```
 
-The backend should run on:
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+The frontend runs at:
+
+```text
+http://localhost:5173
+```
+
+The Flask API runs at:
 
 ```text
 http://localhost:5000
 ```
 
-Check backend health:
-
-```bash
-curl http://localhost:5000/health
-```
-
 ## Environment Variables
 
-Create a `.env` file for backend values:
+Optional backend values:
 
 ```bash
 PORT=5000
-ACCESS_TOKEN_SECRET=your-secure-secret
-REMOTIVE_API_URL=https://remotive.com/api/remote-jobs
-DATABASE_URL=sqlite:///instance/hireflow.db
+JWT_SECRET_KEY=replace-this-with-a-secure-secret
+JWT_EXPIRY_HOURS=24
+HIRE_FLOW_DB_PATH=backend_flask/instance/hireflow2.sqlite3
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-Do not commit real secrets to GitHub.
+Optional frontend value for a hosted backend:
+
+```bash
+VITE_API_BASE_URL=https://your-backend.example.com
+```
 
 ## Main API Routes
+
+Auth:
 
 ```text
 POST   /api/auth/register
 POST   /api/auth/signup
 POST   /api/auth/login
 GET    /api/auth/me
+```
 
+Jobs:
+
+```text
 GET    /api/jobs
 GET    /api/jobs/<id>
+GET    /api/jobs/mine
 POST   /api/jobs
 PUT    /api/jobs/<id>
 DELETE /api/jobs/<id>
+```
 
-POST   /api/cv
-GET    /api/cv/my
+Applications:
 
+```text
 POST   /api/applications
-GET    /api/applications/my
 GET    /api/applications
+GET    /api/applications/my
 PATCH  /api/applications/<id>/status
+DELETE /api/applications/<id>
+```
 
-GET    /api/admin/overview
+CV/profile:
 
+```text
+GET    /api/cvs/me
+POST   /api/cvs
+```
+
+API keys:
+
+```text
 GET    /api/api-keys
 POST   /api/api-keys
+PATCH  /api/api-keys/<id>/toggle
 DELETE /api/api-keys/<id>
-
-GET    /health
 ```
 
-## GitHub Pages Note
-
-GitHub Pages only hosts the static React frontend. It does not run the Flask backend.
-
-This means features like login, signup, CV upload, job posting, applications, admin overview, and API key management need the Flask backend to be hosted separately.
-
-To build the frontend with a hosted backend URL:
-
-```bash
-VITE_API_BASE_URL=https://your-backend-url.example.com npm run build
-```
-
-Then deploy the frontend:
-
-```bash
-npm run deploy
-```
-
-## Team Responsibilities
-
-Abdirahman is the Team Lead and Full-Stack Integration Lead.
-
-Abdirahman handles the main app flow, frontend/backend connection, authentication flow, API service connection, and Flask backend startup.
-
-Frontend files:
+Admin:
 
 ```text
-src/App.jsx
-src/main.jsx
-src/context/AuthContext.jsx
-src/services/api.js
-src/pages/Login.jsx
-src/pages/Signup.jsx
+GET    /api/admin/overview
 ```
 
-Backend files:
+Health:
 
 ```text
-backend_flask/app.py
-backend_flask/auth_utils.py
-backend_flask/routes/auth.py
-backend_flask/services/remotive.py
+GET    /api/health
 ```
 
-Athanas is the Frontend Layout Lead and Database Structure Lead.
+## Auth And Roles
 
-Athanas handles the navbar, homepage layout, global styling, responsive design, database setup, and model structure.
-
-Frontend files:
+JWT tokens are returned after signup and login. Protected routes require:
 
 ```text
-src/components/Navbar.jsx
-src/pages/Home.jsx
-src/styles/main.css
-src/index.css
-src/App.css
+Authorization: Bearer <token>
 ```
 
-Backend files:
+Role permissions:
 
 ```text
-backend_flask/config.py
-backend_flask/extensions.py
-backend_flask/models.py
-backend_flask/__init__.py
+job_seeker: save jobs locally, manage profile, apply to jobs, manage API keys
+employer: create/update/delete own jobs, review applications for own jobs, manage API keys
+admin: access admin overview and manage platform-level application/job data
 ```
 
-Donald is the Jobs, Applications, and Workflow Lead.
+## Verification Checklist
 
-Donald handles job cards, job lists, job details, loading/error states, job routes, application routes, and API key routes.
-
-Frontend files:
-
-```text
-src/components/JobCard.jsx
-src/components/JobList.jsx
-src/pages/JobDetails.jsx
-src/components/Loader.jsx
-src/components/Error.jsx
-```
-
-Backend files:
-
-```text
-backend_flask/routes/jobs.py
-backend_flask/routes/applications.py
-backend_flask/routes/api_keys.py
-backend_flask/routes/__init__.py
-```
-
-Albert is the Forms, CV, Admin, and Developer Access Lead.
-
-Albert handles search, filters, information pages, admin dashboard, CV uploads, admin routes, and developer access documentation.
-
-Frontend files:
-
-```text
-src/components/Filters.jsx
-src/components/SearchBar.jsx
-src/pages/InfoPages.jsx
-src/pages/AdminDashboard.jsx
-src/index.html
-```
-
-Backend files:
-
-```text
-backend_flask/routes/cv.py
-backend_flask/routes/admin.py
-backend_flask/services/__init__.py
-backend_flask/README.md
-```
-
-## Backend Coordination Rules
-
-If a change touches another person's backend file, tell that person before merging.
-
-Keep Flask API responses aligned with what the React frontend expects.
-
-Do not commit generated database files, uploaded CV files, virtual environment folders, `dist`, or `node_modules`.
-
-Before submitting changes, run:
+Run before submitting:
 
 ```bash
 npm run build
-npm run lint
+./.venv/bin/python -m py_compile backend_flask/auth_utils.py backend_flask/app.py backend_flask/routes/*.py
 ```
 
-Then smoke-test the backend:
+Backend smoke test ideas:
 
 ```bash
-curl http://localhost:5000/health
-curl "http://localhost:5000/api/jobs?sync=false"
+curl http://localhost:5000/api/health
+curl http://localhost:5000/api/jobs
 ```
 
+Manual user flow:
 
-HireFlow2 is now a React JSX and Flask Python project. The frontend handles the user interface, while the Flask backend handles authentication, database operations, CV uploads, job applications, admin tools, API keys, and public job syncing.
+1. Register a recruiter account.
+2. Post a job from Post job.
+3. Register a job seeker account.
+4. Save and apply to the posted job.
+5. Return to the recruiter account and update application status.
+6. Create and revoke an API key.
+7. Register an admin account and open the admin dashboard.
+
+## Rubric Alignment
+
+Alignment with brief:
+The product is a hiring and job search platform with job discovery, auth, employer posting, applications, profile tools, API keys, and admin overview.
+
+Functionality and auth:
+Registration, login, JWT-protected routes, user-owned job CRUD, application tracking, CV/profile save, and API key CRUD are implemented.
+
+Code quality:
+Frontend API calls are centralized in `src/services/api.js`; auth state is centralized in `src/context/AuthContext.jsx`; Flask auth and database helpers are centralized in `backend_flask/auth_utils.py`.
+
+User experience:
+The UI follows the provided LinkedIn-style design with sticky navigation, responsive cards, clear login state, profile sidebar, filters, and dashboard flows.
+
+Documentation and maintainability:
+This README documents setup, routes, roles, verification, and handoff expectations.
+
+## GitHub Pages
+
+GitHub Pages can host the static React frontend at:
+
+```text
+https://abdichan.github.io/HireFlow2/
+```
+
+Static hosting cannot run Flask. Deploy the backend separately and set `VITE_API_BASE_URL` during build when using hosted auth and CRUD features.

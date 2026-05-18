@@ -1,38 +1,53 @@
-import React from "react";
+const CATEGORIES = [
+  "All",
+  "digital",
+  "engineering",
+  "management",
+  "finance",
+  "marketing",
+  "design",
+  "development",
+];
 
-function Filters({
-  selectedCategory,
-  setSelectedCategory,
-}) {
+const TYPES = ["All Types", "remote", "full-time", "contract", "part-time", "freelance"];
+
+function labelFor(value) {
+  if (value === "All") return "View all";
+  if (value === "All Types") return value;
+
+  return value
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function Filters({ selectedCategory, setSelectedCategory, selectedType, setSelectedType }) {
   return (
-    <div className="filters">
+    <section className="filters" aria-label="Job filters">
+      <div className="filters__chips">
+        {CATEGORIES.map((category) => (
+          <button
+            key={category}
+            type="button"
+            className={selectedCategory === category ? "is-active" : ""}
+            onClick={() => setSelectedCategory(category)}
+          >
+            {labelFor(category)}
+          </button>
+        ))}
+      </div>
 
       <select
-        value={selectedCategory}
-        onChange={(e) =>
-          setSelectedCategory(e.target.value)
-        }
+        aria-label="Filter by job type"
+        value={selectedType}
+        onChange={(event) => setSelectedType(event.target.value)}
       >
-        <option value="">All Categories</option>
-
-        <option value="Frontend">
-          Frontend
-        </option>
-
-        <option value="Backend">
-          Backend
-        </option>
-
-        <option value="Fullstack">
-          Fullstack
-        </option>
-
-        <option value="UI/UX">
-          UI/UX
-        </option>
+        {TYPES.map((type) => (
+          <option key={type} value={type}>
+            {labelFor(type)}
+          </option>
+        ))}
       </select>
-
-    </div>
+    </section>
   );
 }
 

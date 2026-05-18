@@ -1,127 +1,133 @@
-"""
-API Keys Routes 
-"""
-from flask import request, jsonify
-from extensions import db
-from models import ApiKey
-from auth_utils import authenticate_token
+from __future__ import annotations
+
+import hashlib
 import secrets
+from typing import Any
+
+from flask import Blueprint, jsonify, request
+
+from ..auth_utils import get_current_user, get_db_connection, token_required
 
 
-def register_api_key_routes(app):
-    """Register all API key routes to Flask app"""
-    
-    @app.route('/api/keys', methods=['GET'])
-    @authenticate_token
-    def list_api_keys():
-        """List user's API keys"""
-        try:
-            user = request.user
-            keys = ApiKey.query.filter_by(user_id=user.get('id')).all()
-            
-            return jsonify({
-                'data': [{
-                    'id': key.id,
-                    'name': key.name,
-                    'isActive': key.is_active,
-                    'lastUsed': key.last_used.isoformat() if key.last_used else None,
-                    'createdAt': key.created_at.isoformat(),
-                    'updatedAt': key.updated_at.isoformat()
-                } for key in keys]
-            }), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    
-    
-    @app.route('/api/keys', methods=['POST'])
-    @authenticate_token
-    def create_api_key():
-        """Create a new API key"""
-        try:
-            user = request.user
-            data = request.get_json() or {}
-            
-            name = data.get('name', 'HireFlow API Key')
-            if not isinstance(name, str) or not name.strip():
-                name = 'HireFlow API Key'
-            
-            # Generate a unique API key
-            new_key = f"hf_{secrets.token_urlsafe(32)}"
-            
-            api_key = ApiKey(
-                user_id=user.get('id'),
-                key=new_key,
-                name=name.strip(),
-                is_active=True
-            )
-            
-            db.session.add(api_key)
-            db.session.commit()
-            
-            return jsonify({
-                'message': 'API key created. Copy it now; it will not be shown again.',
-                'data': {
-                    'id': api_key.id,
-                    'key': new_key,
-                    'name': api_key.name,
-                    'isActive': api_key.is_active,
-                    'createdAt': api_key.created_at.isoformat()
-                }
-            }), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-    
-    
-    @app.route('/api/keys/<int:key_id>', methods=['DELETE'])
-    @authenticate_token
-    def revoke_api_key(key_id):
-        """Revoke an API key"""
-        try:
-            user = request.user
-            
-            api_key = ApiKey.query.filter_by(
-                id=key_id,
-                user_id=user.get('id')
-            ).first()
-            
-            if not api_key:
-                return jsonify({'error': 'API key not found'}), 404
-            
-            db.session.delete(api_key)
-            db.session.commit()
-            
-            return jsonify({'message': 'API key revoked successfully'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-    
-    
-    @app.route('/api/keys/<int:key_id>/toggle', methods=['PATCH'])
-    @authenticate_token
-    def toggle_api_key(key_id):
-        """Toggle API key active/inactive status"""
-        try:
-            user = request.user
-            api_key = ApiKey.query.filter_by(
-                id=key_id,
-                user_id=user.get('id')
-            ).first()
-            
-            if not api_key:
-                return jsonify({'error': 'API key not found'}), 404
-            
-            api_key.is_active = not api_key.is_active
-            db.session.commit()
-            
-            return jsonify({
-                'message': f'API key {"activated" if api_key.is_active else "deactivated"}',
-                'data': {
-                    'id': api_key.id,
-                    'isActive': api_key.is_active,
-                    'updatedAt': api_key.updated_at.isoformat()
-                }
-            }), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+api_keys_bp = Blueprint("api_keys", __name__)
+
+
+def serialize_key(row) -> dict[str, Any]:
+    key = dict(row)
+
+    return {
+        "id": key["id"],
+        "name": key["name"],
+        "keyPreview": key["key_preview"],
+        "isActive": bool(key["is_active"]),
+        "createdAt": key.get("created_at"),
+        "updatedAt": key.get("updated_at") or key.get("created_at"),
+        "lastUsed": key.get("last_used_at"),
+    }
+
+
+@api_keys_bp.get("/")
+@token_required
+def list_api_keys():
+    user = get_current_user()
+
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM api_keys
+            WHERE user_id = ?
+            ORDER BY datetime(created_at) DESC, id DESC
+            """,
+            (user["id"],),
+        ).fetchall()
+
+    return jsonify({"data": [serialize_key(row) for row in rows]})
+
+
+@api_keys_bp.post("/")
+@token_required
+def create_api_key():
+    user = get_current_user()
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name") or "HireFlow API Key").strip() or "HireFlow API Key"
+    raw_key = f"hf_{secrets.token_urlsafe(32)}"
+    key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+    preview = f"{raw_key[:8]}...{raw_key[-4:]}"
+
+    with get_db_connection() as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO api_keys (user_id, name, key_hash, key_preview, is_active, updated_at)
+            VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+            """,
+            (user["id"], name, key_hash, preview),
+        )
+        row = conn.execute(
+            "SELECT * FROM api_keys WHERE id = ?",
+            (cursor.lastrowid,),
+        ).fetchone()
+
+    return jsonify({
+        "message": "API key created. Copy it now; it will not be shown again.",
+        "data": {
+            **serialize_key(row),
+            "key": raw_key,
+        },
+    }), 201
+
+
+@api_keys_bp.patch("/<int:key_id>/toggle")
+@token_required
+def toggle_api_key(key_id: int):
+    user = get_current_user()
+
+    with get_db_connection() as conn:
+        key = conn.execute(
+            "SELECT * FROM api_keys WHERE id = ? AND user_id = ?",
+            (key_id, user["id"]),
+        ).fetchone()
+
+        if not key:
+            return jsonify({"error": "API key not found"}), 404
+
+        conn.execute(
+            """
+            UPDATE api_keys
+            SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ?
+            """,
+            (key_id, user["id"]),
+        )
+        updated_key = conn.execute(
+            "SELECT * FROM api_keys WHERE id = ? AND user_id = ?",
+            (key_id, user["id"]),
+        ).fetchone()
+
+    return jsonify({
+        "message": "API key updated",
+        "data": serialize_key(updated_key),
+    })
+
+
+@api_keys_bp.delete("/<int:key_id>")
+@token_required
+def revoke_api_key(key_id: int):
+    user = get_current_user()
+
+    with get_db_connection() as conn:
+        key = conn.execute(
+            "SELECT id FROM api_keys WHERE id = ? AND user_id = ?",
+            (key_id, user["id"]),
+        ).fetchone()
+
+        if not key:
+            return jsonify({"error": "API key not found"}), 404
+
+        conn.execute(
+            "DELETE FROM api_keys WHERE id = ? AND user_id = ?",
+            (key_id, user["id"]),
+        )
+
+    return jsonify({"message": "API key revoked successfully"})

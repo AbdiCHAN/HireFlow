@@ -1,6 +1,6 @@
 import JobCard from "./JobCard";
 
-function JobList({ jobs = [], savedIds, onSave, onSelect }) {
+function JobList({ jobs = [], savedIds, onSave, onSelect, onApply }) {
   if (jobs.length === 0) {
     return (
       <div className="empty-state">
@@ -21,6 +21,7 @@ function JobList({ jobs = [], savedIds, onSave, onSelect }) {
           isSaved={savedIds?.has(job.id)}
           onSave={onSave}
           onSelect={onSelect}
+          onApply={onApply}
         />
       ))}
     </div>

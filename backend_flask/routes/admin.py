@@ -1,27 +1,35 @@
+from __future__ import annotations
+
 from flask import Blueprint, jsonify
 
-from models.CV import CV
-from models.ApiKey import ApiKey
-
-admin_bp = Blueprint(
-    "admin_bp",
-    __name__
-)
+from ..auth_utils import get_db_connection, require_roles
 
 
-# ADMIN OVERVIEW
-@admin_bp.route(
-    "/admin/overview",
-    methods=["GET"]
-)
+admin_bp = Blueprint("admin", __name__)
+
+
+@admin_bp.get("/overview")
+@require_roles("admin")
 def admin_overview():
+    with get_db_connection() as conn:
+        totals = {
+            "totalUsers": conn.execute("SELECT COUNT(*) AS total FROM users").fetchone()["total"],
+            "totalJobs": conn.execute("SELECT COUNT(*) AS total FROM jobs").fetchone()["total"],
+            "totalApplications": conn.execute("SELECT COUNT(*) AS total FROM applications").fetchone()["total"],
+            "totalApiKeys": conn.execute("SELECT COUNT(*) AS total FROM api_keys").fetchone()["total"],
+        }
 
-    total_cvs = CV.query.count()
-
-    total_api_keys = ApiKey.query.count()
+        recent_users = conn.execute(
+            """
+            SELECT id, full_name, email, role, created_at
+            FROM users
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT 8
+            """
+        ).fetchall()
 
     return jsonify({
-        "total_cvs": total_cvs,
-        "total_api_keys": total_api_keys,
-        "status": "Backend running"
+        "status": "success",
+        **totals,
+        "recentUsers": [dict(user) for user in recent_users],
     })

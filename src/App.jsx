@@ -89,6 +89,9 @@ function App() {
   const [searchTerm, setSearchTerm] =
     useState("");
 
+  const [jobsRefreshKey, setJobsRefreshKey] =
+    useState(0);
+
   const [activePage, setActivePage] =
     useState("home");
 
@@ -115,6 +118,10 @@ function App() {
           : "smooth",
       });
     });
+  }, []);
+
+  const refreshJobs = useCallback(() => {
+    setJobsRefreshKey((prev) => prev + 1);
   }, []);
 
   const scrollToJobs = useCallback(() => {
@@ -309,6 +316,7 @@ function App() {
         return (
           <PostJobPage
             onNavigate={handleNavigate}
+            onJobsChange={refreshJobs}
           />
         );
 
@@ -345,6 +353,7 @@ function App() {
       default:
         return (
           <Home
+            key={jobsRefreshKey}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             savedIds={savedIds}
@@ -382,6 +391,8 @@ function App() {
         activePage={currentNavbarPage}
         onNavigate={handleNavigate}
         savedCount={savedIds.size}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
       />
 
       <main className="main-content app__body">
@@ -390,11 +401,11 @@ function App() {
 
       <footer className="footer">
         <div className="container">
-          © {new Date().getFullYear()}
+          Copyright {new Date().getFullYear()}
           {" "}
           <strong>HireFlow</strong>
           {" "}
-          · Find and become a professional.
+           -  Find and become a professional.
         </div>
       </footer>
 

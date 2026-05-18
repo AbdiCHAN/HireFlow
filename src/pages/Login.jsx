@@ -197,7 +197,7 @@ function LoginPage({ onNavigate }) {
             </label>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="********"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -279,7 +279,7 @@ function LoginPage({ onNavigate }) {
               opacity: isLoading ? 0.7 : 1,
             }}
           >
-            {isLoading ? "Signing in..." : "Sign In →"}
+            {isLoading ? "Signing in..." : "Sign In ->"}
           </button>
         </form>
 

@@ -269,7 +269,7 @@ function SignupPage({ onNavigate }) {
             </label>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="********"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -325,7 +325,7 @@ function SignupPage({ onNavigate }) {
             </label>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="********"
               value={confirmPassword}
               onChange={(e) => {
                 setConfirmPassword(e.target.value);
@@ -382,9 +382,9 @@ function SignupPage({ onNavigate }) {
             </label>
             <div style={{ display: "flex", gap: 12 }}>
               {[
-                { value: "candidate", label: "Job Seeker", icon: "👤" },
-                { value: "recruiter", label: "Recruiter", icon: "🏢" },
-                { value: "admin", label: "Admin", icon: "▣" },
+                { value: "candidate", label: "Job Seeker", icon: "User" },
+                { value: "recruiter", label: "Recruiter", icon: "Company" },
+                { value: "admin", label: "Admin", icon: "Admin" },
               ].map((option) => (
                 <button
                   key={option.value}
@@ -452,7 +452,7 @@ function SignupPage({ onNavigate }) {
               opacity: isLoading ? 0.7 : 1,
             }}
           >
-            {isLoading ? "Creating account..." : "Create Account →"}
+            {isLoading ? "Creating account..." : "Create Account ->"}
           </button>
         </form>
 

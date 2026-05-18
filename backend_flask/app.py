@@ -21,6 +21,7 @@ def create_app() -> Flask:
     load_dotenv(BASE_DIR.parent / ".env")
 
     app = Flask(__name__)
+    app.url_map.strict_slashes = False
 
     app.config["SECRET_KEY"] = (
         os.getenv("JWT_SECRET_KEY")
@@ -117,7 +118,7 @@ def register_blueprints(app: Flask) -> None:
 
     optional_blueprints = [
         ("backend_flask.routes.jobs", "jobs_bp", "/api/jobs"),
-        ("backend_flask.routes.cvs", "cvs_bp", "/api/cvs"),
+        ("backend_flask.routes.cv", "cv_bp", "/api/cvs"),
         ("backend_flask.routes.applications", "applications_bp", "/api/applications"),
         ("backend_flask.routes.admin", "admin_bp", "/api/admin"),
         ("backend_flask.routes.api_keys", "api_keys_bp", "/api/api-keys"),
@@ -131,11 +132,12 @@ def register_blueprints(app: Flask) -> None:
             app.logger.info("Registered blueprint: %s", module_name)
 
         except ModuleNotFoundError as error:
-            if error.name == module_name:
-                app.logger.info("Optional route file missing: %s", module_name)
-                continue
-
-            raise
+            app.logger.info(
+                "Optional route file unavailable: %s (%s)",
+                module_name,
+                error,
+            )
+            continue
 
         except AttributeError:
             app.logger.warning(

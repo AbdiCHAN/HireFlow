@@ -1,215 +1,353 @@
-from flask import request, jsonify
-from extensions import db
-from models import Job
-from auth_utils import authenticate_token, authorize_role
+from __future__ import annotations
+
 import json
+from typing import Any
+
+import requests
+from flask import Blueprint, jsonify, request
+
+from ..auth_utils import get_current_user, get_db_connection, require_roles, token_required
 
 
-def serialize_tags(tags):
-    """Serialize tags to JSON string"""
-    if isinstance(tags, list):
-        return json.dumps(tags[:8])
-    return str(tags) if tags else None
+jobs_bp = Blueprint("jobs", __name__)
+
+REMOTIVE_API_URL = "https://api.remotive.com/v1/remote-jobs"
 
 
-def serialize_job(job, full=False):
-    """Serialize a Job model to dict"""
-    data = {
-        'id': job.id,
-        'externalId': job.external_id,
-        'source': job.source,
-        'title': job.title,
-        'company': job.company,
-        'companyLogo': job.company_logo,
-        'category': job.category,
-        'jobType': job.job_type,
-        'location': job.location,
-        'salary': job.salary,
-        'description': job.description,
-        'fullDescription': job.full_description,
-        'tags': job.tags,
-        'postedAt': job.posted_at.isoformat() if job.posted_at else None,
-        'sourceName': job.source_name,
-        'featured': job.featured,
-        'createdAt': job.created_at.isoformat(),
-        'updatedAt': job.updated_at.isoformat()
+def fetch_public_jobs(search: str = "", limit: int = 40) -> list[dict]:
+    try:
+        params = {"limit": min(limit, 100)}
+        if search:
+            params["search"] = search
+
+        response = requests.get(REMOTIVE_API_URL, params=params, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+
+        jobs = []
+        for job in data.get("jobs", []):
+            jobs.append({
+                "id": f"remotive_{job.get('id')}",
+                "external_id": job.get("id"),
+                "source": "remotive",
+                "title": job.get("title", ""),
+                "company": job.get("company_name", ""),
+                "category": job.get("job_type", "").lower() or "engineering",
+                "job_type": "remote",
+                "location": "Remote",
+                "salary": "",
+                "description": job.get("description", "No description available."),
+                "tags": [job.get("job_type", "")] if job.get("job_type") else [],
+                "posted_at": job.get("publication_date"),
+                "apply_url": job.get("url", ""),
+                "featured": False,
+                "employer_id": None,
+                "created_at": job.get("publication_date"),
+                "updated_at": job.get("publication_date"),
+            })
+
+        return jobs
+    except Exception as e:
+        print(f"Error fetching public jobs: {e}")
+        return []
+
+
+def clean_text(value: Any, fallback: str = "") -> str:
+    if value is None:
+        return fallback
+
+    return str(value).strip()
+
+
+def parse_tags(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [clean_text(tag) for tag in value if clean_text(tag)][:8]
+
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return parse_tags(parsed)
+        except json.JSONDecodeError:
+            return [tag.strip() for tag in value.split(",") if tag.strip()][:8]
+
+    return []
+
+
+def serialize_job(job) -> dict[str, Any]:
+    if isinstance(job, dict) and "id" in job and str(job["id"]).startswith("remotive_"):
+        tags = parse_tags(job.get("tags", []))
+    else:
+        job = dict(job) if not isinstance(job, dict) else job
+        tags = parse_tags(job.get("tags"))
+
+    posted_at = job.get("posted_at") or job.get("created_at")
+
+    return {
+        "id": str(job["id"]),
+        "externalId": job.get("external_id"),
+        "source": job.get("source") or "local",
+        "sourceName": "HireFlow" if job.get("source") == "local" else (job.get("source") or "local").title(),
+        "title": job["title"],
+        "company": job["company"],
+        "companyLogo": "",
+        "category": job.get("category") or "engineering",
+        "rawCategory": job.get("category") or "engineering",
+        "jobType": job.get("job_type") or "remote",
+        "location": job.get("location") or "Remote",
+        "salary": job.get("salary") or "",
+        "description": job.get("description") or "No description available yet.",
+        "fullDescription": job.get("description") or "No description available yet.",
+        "tags": tags,
+        "postedAt": posted_at,
+        "applyUrl": job.get("apply_url") or "",
+        "applicationUrl": job.get("apply_url") or "",
+        "url": job.get("apply_url") or "",
+        "featured": bool(job.get("featured", 0)),
+        "postedByUserId": job.get("employer_id"),
+        "createdAt": job.get("created_at"),
+        "updatedAt": job.get("updated_at"),
     }
-    if full:
-        data['postedByUserId'] = job.posted_by_user_id
-    return data
 
 
-def is_job_owner_or_admin(job, user):
-    """Check if user owns the job or is an admin"""
-    return job.posted_by_user_id == user.get('id') or user.get('role') == 'admin'
+def get_job_row(conn, job_id: int):
+    return conn.execute(
+        """
+        SELECT *
+        FROM jobs
+        WHERE id = ?
+        """,
+        (job_id,),
+    ).fetchone()
 
 
-def register_job_routes(app):
-    """Register all job routes to Flask app"""
-
-    @app.route('/api/jobs', methods=['GET'])
-    def list_jobs():
-        """List jobs with search and filters"""
-        try:
-            search = request.args.get('search', '').strip()
-            category = request.args.get('category', '').strip()
-            limit = min(int(request.args.get('limit', 40)), 80)
-            offset = int(request.args.get('offset', 0))
-
-            query = Job.query
-
-            if search:
-                search_filter = f'%{search}%'
-                query = query.filter(db.or_(
-                    Job.title.ilike(search_filter),
-                    Job.company.ilike(search_filter),
-                    Job.description.ilike(search_filter)
-                ))
-
-            if category:
-                query = query.filter(Job.category.ilike(f'%{category}%'))
-
-            total = query.count()
-            jobs = query.order_by(Job.posted_at.desc()).limit(limit).offset(offset).all()
-
-            return jsonify({
-                'data': [serialize_job(j) for j in jobs],
-                'total': total,
-                'limit': limit,
-                'offset': offset
-            }), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+def is_owner_or_admin(job, user: dict[str, Any]) -> bool:
+    return job["employer_id"] == user.get("id") or user.get("role") == "admin"
 
 
-    @app.route('/api/jobs/<int:job_id>', methods=['GET'])
-    def get_job(job_id):
-        """Get single job details"""
-        try:
-            job = Job.query.get(job_id)
-            if not job:
-                return jsonify({'error': 'Job not found'}), 404
+@jobs_bp.get("/")
+def list_jobs():
+    search = clean_text(request.args.get("search"))
+    category = clean_text(request.args.get("category"))
+    source = clean_text(request.args.get("source", "all"))
 
-            return jsonify({'data': serialize_job(job, full=True)}), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+    try:
+        limit = max(1, min(int(request.args.get("limit", 40)), 80))
+        offset = max(0, int(request.args.get("offset", 0)))
+    except ValueError:
+        return jsonify({"error": "Invalid pagination parameters"}), 400
 
+    all_jobs = []
 
-    @app.route('/api/jobs', methods=['POST'])
-    @authenticate_token
-    @authorize_role('employer', 'admin')
-    def create_job():
-        """Create new internal job"""
-        try:
-            user = request.user
-            data = request.get_json() or {}
+    if source in ["all", "local"]:
+        clauses = []
+        values: list[Any] = []
 
-            title = data.get('title', '').strip()
-            company = data.get('company', '').strip()
-
-            if not title or len(title) < 3:
-                return jsonify({'error': 'Job title required (min 3 chars)'}), 400
-            if not company:
-                return jsonify({'error': 'Company name required'}), 400
-
-            def clean(key):
-                return data.get(key, '').strip() or None
-
-            job = Job(
-                source='internal',
-                title=title,
-                company=company,
-                company_logo=clean('companyLogo'),
-                category=clean('category'),
-                job_type=clean('jobType'),
-                location=clean('location'),
-                salary=clean('salary'),
-                description=clean('description'),
-                full_description=clean('fullDescription'),
-                tags=serialize_tags(data.get('tags')),
-                source_name='HireFlow',
-                featured=bool(data.get('featured', False)),
-                posted_by_user_id=user.get('id')
+        if search:
+            clauses.append(
+                """
+                (
+                    lower(title) LIKE lower(?)
+                    OR lower(company) LIKE lower(?)
+                    OR lower(description) LIKE lower(?)
+                    OR lower(location) LIKE lower(?)
+                    OR lower(tags) LIKE lower(?)
+                )
+                """
             )
+            like_value = f"%{search}%"
+            values.extend([like_value, like_value, like_value, like_value, like_value])
 
-            db.session.add(job)
-            db.session.commit()
+        if category and category.lower() != "all":
+            clauses.append("lower(category) = lower(?)")
+            values.append(category)
 
-            return jsonify({
-                'message': 'Job posted successfully',
-                'data': {
-                    'id': job.id,
-                    'title': job.title,
-                    'company': job.company,
-                    'location': job.location,
-                    'createdAt': job.created_at.isoformat()
-                }
-            }), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+        where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
 
+        with get_db_connection() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT *
+                FROM jobs
+                {where_sql}
+                ORDER BY datetime(COALESCE(posted_at, created_at)) DESC, id DESC
+                """,
+                values,
+            ).fetchall()
 
-    @app.route('/api/jobs/<int:job_id>', methods=['PUT'])
-    @authenticate_token
-    def update_job(job_id):
-        """Update job (owner or admin only)"""
-        try:
-            user = request.user
-            job = Job.query.get(job_id)
+        all_jobs.extend([serialize_job(row) for row in rows])
 
-            if not job:
-                return jsonify({'error': 'Job not found'}), 404
-            if not is_job_owner_or_admin(job, user):
-                return jsonify({'error': 'Insufficient permissions'}), 403
+    if source in ["all", "public"]:
+        public_jobs = fetch_public_jobs(search, limit=40)
+        if category and category.lower() != "all":
+            public_jobs = [j for j in public_jobs if j.get("category", "").lower() == category.lower()]
+        all_jobs.extend([serialize_job(job) for job in public_jobs])
 
-            data = request.get_json() or {}
+    all_jobs.sort(key=lambda x: x.get("postedAt") or "", reverse=True)
 
-            if 'title' in data:
-                title = data['title'].strip()
-                if not title or len(title) < 3:
-                    return jsonify({'error': 'Title must be at least 3 chars'}), 400
-                job.title = title
+    total = len(all_jobs)
+    paginated = all_jobs[offset : offset + limit]
 
-            for attr, key in [
-                ('description', 'description'),
-                ('full_description', 'fullDescription'),
-                ('salary', 'salary'),
-                ('location', 'location'),
-            ]:
-                if key in data:
-                    setattr(job, attr, data[key].strip() or None)
-
-            if 'tags' in data:
-                job.tags = serialize_tags(data['tags'])
-            if 'featured' in data:
-                job.featured = bool(data['featured'])
-
-            db.session.commit()
-
-            return jsonify({'message': 'Job updated successfully'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+    return jsonify({
+        "data": paginated,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    })
 
 
-    @app.route('/api/jobs/<int:job_id>', methods=['DELETE'])
-    @authenticate_token
-    def delete_job(job_id):
-        """Delete job (owner or admin only)"""
-        try:
-            user = request.user
-            job = Job.query.get(job_id)
+@jobs_bp.get("/mine")
+@token_required
+def my_jobs():
+    user = get_current_user()
 
-            if not job:
-                return jsonify({'error': 'Job not found'}), 404
-            if not is_job_owner_or_admin(job, user):
-                return jsonify({'error': 'Insufficient permissions'}), 403
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM jobs
+            WHERE employer_id = ?
+            ORDER BY datetime(COALESCE(posted_at, created_at)) DESC, id DESC
+            """,
+            (user["id"],),
+        ).fetchall()
 
-            db.session.delete(job)
-            db.session.commit()
+    return jsonify({"data": [serialize_job(row) for row in rows]})
 
-            return jsonify({'message': 'Job deleted successfully'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+
+@jobs_bp.get("/<int:job_id>")
+def get_job(job_id: int):
+    with get_db_connection() as conn:
+        job = get_job_row(conn, job_id)
+
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    return jsonify({"data": serialize_job(job)})
+
+
+@jobs_bp.post("/")
+@require_roles("employer", "admin")
+def create_job():
+    user = get_current_user()
+    data = request.get_json(silent=True) or {}
+
+    title = clean_text(data.get("title"))
+    company = clean_text(data.get("company"))
+
+    if len(title) < 3:
+        return jsonify({"error": "Job title must be at least 3 characters"}), 400
+
+    if not company:
+        return jsonify({"error": "Company name is required"}), 400
+
+    fields = {
+        "location": clean_text(data.get("location"), "Remote"),
+        "job_type": clean_text(data.get("jobType") or data.get("job_type"), "remote"),
+        "salary": clean_text(data.get("salary")),
+        "description": clean_text(data.get("description") or data.get("fullDescription")),
+        "category": clean_text(data.get("category"), "engineering").lower(),
+        "tags": json.dumps(parse_tags(data.get("tags"))),
+        "apply_url": clean_text(data.get("applyUrl") or data.get("applicationUrl") or data.get("url")),
+        "is_remote": 1 if "remote" in clean_text(data.get("location"), "").lower() else 0,
+    }
+
+    with get_db_connection() as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO jobs (
+                employer_id, title, company, location, job_type, salary,
+                description, source, category, tags, apply_url, posted_at, is_remote
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'local', ?, ?, ?, CURRENT_TIMESTAMP, ?)
+            """,
+            (
+                user["id"],
+                title,
+                company,
+                fields["location"],
+                fields["job_type"],
+                fields["salary"],
+                fields["description"],
+                fields["category"],
+                fields["tags"],
+                fields["apply_url"],
+                fields["is_remote"],
+            ),
+        )
+        job = get_job_row(conn, cursor.lastrowid)
+
+    return jsonify({
+        "message": "Job posted successfully",
+        "data": serialize_job(job),
+    }), 201
+
+
+@jobs_bp.put("/<int:job_id>")
+@token_required
+def update_job(job_id: int):
+    user = get_current_user()
+    data = request.get_json(silent=True) or {}
+
+    with get_db_connection() as conn:
+        job = get_job_row(conn, job_id)
+
+        if not job:
+            return jsonify({"error": "Job not found"}), 404
+
+        if not is_owner_or_admin(job, user):
+            return jsonify({"error": "Insufficient permissions"}), 403
+
+        title = clean_text(data.get("title"), job["title"])
+        company = clean_text(data.get("company"), job["company"])
+
+        if len(title) < 3:
+            return jsonify({"error": "Job title must be at least 3 characters"}), 400
+
+        conn.execute(
+            """
+            UPDATE jobs
+            SET title = ?, company = ?, location = ?, job_type = ?, salary = ?,
+                description = ?, category = ?, tags = ?, apply_url = ?,
+                is_remote = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (
+                title,
+                company,
+                clean_text(data.get("location"), job["location"] or "Remote"),
+                clean_text(data.get("jobType") or data.get("job_type"), job["job_type"] or "remote"),
+                clean_text(data.get("salary"), job["salary"] or ""),
+                clean_text(data.get("description") or data.get("fullDescription"), job["description"] or ""),
+                clean_text(data.get("category"), job["category"] or "engineering").lower(),
+                json.dumps(parse_tags(data.get("tags", job["tags"] or "[]"))),
+                clean_text(data.get("applyUrl") or data.get("applicationUrl") or data.get("url"), job["apply_url"] or ""),
+                1 if "remote" in clean_text(data.get("location"), job["location"] or "").lower() else 0,
+                job_id,
+            ),
+        )
+        updated_job = get_job_row(conn, job_id)
+
+    return jsonify({
+        "message": "Job updated successfully",
+        "data": serialize_job(updated_job),
+    })
+
+
+@jobs_bp.delete("/<int:job_id>")
+@token_required
+def delete_job(job_id: int):
+    user = get_current_user()
+
+    with get_db_connection() as conn:
+        job = get_job_row(conn, job_id)
+
+        if not job:
+            return jsonify({"error": "Job not found"}), 404
+
+        if not is_owner_or_admin(job, user):
+            return jsonify({"error": "Insufficient permissions"}), 403
+
+        conn.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+
+    return jsonify({"message": "Job deleted successfully"})

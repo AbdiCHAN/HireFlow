@@ -1,134 +1,90 @@
-import "./JobCard.css";
+import "./jobCard.css";
 
 function getInitials(name = "") {
-  return String(name)
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase() || "HF";
+  return (
+    String(name)
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase() || "HF"
+  );
 }
 
-function getJobType(job = {}) {
-  return job.type || job.jobType || "Remote";
+function titleCase(value = "") {
+  return String(value)
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function getApplyUrl(job = {}) {
-  if (job.applyUrl) return job.applyUrl;
-  if (job.applicationUrl) return job.applicationUrl;
-  if (job.url) return job.url;
-
-  const title = encodeURIComponent(job.title || "Job");
-  const company = encodeURIComponent(job.company || "HireFlow");
-
-  return `mailto:careers@hireflow.com?subject=Application for ${title} at ${company}`;
-}
-
-function JobCard({
-  job,
-  isSaved = false,
-  onSave,
-  onSelect,
-}) {
+function JobCard({ job, isSaved = false, onSave, onSelect, onApply }) {
   if (!job) return null;
 
   const company = job.company || "Unknown Company";
-  const title = job.title || "Untitled Role";
-  const type = getJobType(job);
-  const tags = Array.isArray(job.tags) ? job.tags : [];
-
-  const handleOpen = () => {
-    onSelect?.(job);
-  };
-
-  const handleApply = (event) => {
-    event.stopPropagation();
-
-    const applyUrl = getApplyUrl(job);
-    if (applyUrl && applyUrl !== "#") {
-      window.open(applyUrl, "_blank", "noopener,noreferrer");
-    }
-  };
-
-  const handleSave = (event) => {
-    event.stopPropagation();
-
-    if (job.id === undefined || job.id === null) return;
-
-    onSave?.(job.id);
-  };
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleOpen();
-    }
-  };
+  const type = job.jobType || job.type || "remote";
+  const tags = Array.isArray(job.tags) ? job.tags.slice(0, 5) : [];
 
   return (
-    <div
-      className="job-card"
-      onClick={handleOpen}
-      role="button"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-    >
-      <div className="job-card__top">
-        <div className="job-card__left">
-          <div className="job-card__logo-text">{getInitials(company)}</div>
-
-          <div>
-            <p className="job-card__company">{company}</p>
-            <h3 className="job-card__title">{title}</h3>
-          </div>
+    <article className="job-card">
+      <div className="job-card__head">
+        <div className="job-card__logo" aria-hidden="true">
+          {job.companyLogo ? <img src={job.companyLogo} alt="" /> : getInitials(company)}
         </div>
-
-        <div className="job-card__actions">
-          <button
-            type="button"
-            className="job-card__apply"
-            onClick={handleApply}
+        <div className="job-card__company">{company}</div>
+        <button
+          className="job-card__save"
+          type="button"
+          aria-label={isSaved ? "Unsave job" : "Save job"}
+          aria-pressed={isSaved}
+          onClick={() => onSave?.(job.id)}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill={isSaved ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            Apply
-          </button>
-
-          <button
-            type="button"
-            className={`job-card__save ${
-              isSaved ? "job-card__save--saved" : ""
-            }`}
-            onClick={handleSave}
-            aria-label={isSaved ? "Unsave job" : "Save job"}
-          >
-            {isSaved ? "Saved" : "Save"}
-          </button>
-        </div>
+            <path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6z" />
+          </svg>
+        </button>
       </div>
 
-      <p className="job-card__desc">
-        {job.description || "No job description has been provided yet."}
+      <button className="job-card__title" type="button" onClick={() => onSelect?.(job)}>
+        {job.title || "Untitled role"}
+      </button>
+
+      <p className="job-card__description">
+        {job.description || "No description available yet."}
       </p>
 
       {tags.length > 0 && (
         <div className="job-card__tags">
           {tags.map((tag) => (
-            <div className="job-card__tag" key={tag}>
+            <span className="job-card__tag" key={tag}>
               {tag}
-            </div>
+            </span>
           ))}
         </div>
       )}
 
-      <div className="job-card__divider" />
+      <div className="job-card__line" />
 
-      <div className="job-card__footer">
-        <div className="job-card__meta">{job.location || "Remote"}</div>
-        <div className="job-card__meta">{type}</div>
-        {job.salary && <div className="job-card__salary">{job.salary}</div>}
-        {job.postedAt && <div className="job-card__meta">{job.postedAt}</div>}
+      <div className="job-card__meta">
+        <span>{job.location || "Remote"}</span>
+        <span>{titleCase(type)}</span>
       </div>
-    </div>
+
+      <div className="job-card__bottom">
+        <span className="job-card__salary">{job.salary || "Salary shared after intro"}</span>
+        <button className="job-card__apply" type="button" onClick={() => onApply?.(job)}>
+          Apply
+        </button>
+      </div>
+    </article>
   );
 }
 

@@ -72,12 +72,12 @@ export const stripHtml = (html = "") => {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&rsquo;/g, "’")
-    .replace(/&lsquo;/g, "‘")
-    .replace(/&rdquo;/g, "”")
-    .replace(/&ldquo;/g, "“")
-    .replace(/&mdash;/g, "—")
-    .replace(/&ndash;/g, "–")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rdquo;/g, '"')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&mdash;/g, "--")
+    .replace(/&ndash;/g, "-")
     .replace(/\s{2,}/g, " ")
     .trim();
 };
@@ -144,7 +144,7 @@ export const DEMO_JOBS = [
     rawCategory: "software-dev",
     jobType: "full-time",
     location: "Nairobi, Kenya",
-    salary: "KES 80k–120k",
+    salary: "KES 80k-120k",
     postedAt: "Today",
     description:
       "Build responsive, pixel-perfect interfaces using React and TypeScript. You'll own the component library, collaborate with designers in Figma, and ship features that thousands of job seekers interact with daily.",
@@ -162,7 +162,7 @@ export const DEMO_JOBS = [
     rawCategory: "software-dev",
     jobType: "full-time",
     location: "Nairobi, Kenya",
-    salary: "KES 100k–150k",
+    salary: "KES 100k-150k",
     postedAt: "Today",
     description:
       "Design and build high-throughput REST and GraphQL APIs that process millions of financial transactions daily across Africa.",
@@ -180,7 +180,7 @@ export const DEMO_JOBS = [
     rawCategory: "design",
     jobType: "full-time",
     location: "Remote",
-    salary: "$55k–$80k",
+    salary: "$55k-$80k",
     postedAt: "1 day ago",
     description:
       "Translate user research and business requirements into elegant, intuitive product experiences using Figma and usability testing.",
@@ -198,7 +198,7 @@ export const DEMO_JOBS = [
     rawCategory: "data",
     jobType: "full-time",
     location: "Nairobi, Kenya",
-    salary: "KES 70k–100k",
+    salary: "KES 70k-100k",
     postedAt: "2 days ago",
     description:
       "Analyse customer behaviour, network performance, and revenue data to surface actionable insights with SQL and dashboards.",
@@ -216,7 +216,7 @@ export const DEMO_JOBS = [
     rawCategory: "marketing",
     jobType: "full-time",
     location: "Lagos, Nigeria",
-    salary: "$40k–$60k",
+    salary: "$40k-$60k",
     postedAt: "2 days ago",
     description:
       "Lead digital marketing channels including paid social, SEO, email campaigns, and influencer partnerships.",
@@ -234,7 +234,7 @@ export const DEMO_JOBS = [
     rawCategory: "mobile",
     jobType: "full-time",
     location: "Nairobi, Kenya",
-    salary: "KES 90k–130k",
+    salary: "KES 90k-130k",
     postedAt: "1 day ago",
     description:
       "Build offline-first mobile features for a commerce app serving underserved communities across East Africa.",
@@ -252,7 +252,7 @@ export const DEMO_JOBS = [
     rawCategory: "devops",
     jobType: "contract",
     location: "Remote",
-    salary: "KES 80k–110k",
+    salary: "KES 80k-110k",
     postedAt: "3 days ago",
     description:
       "Own CI/CD pipelines, containerise microservices with Docker and Kubernetes, and manage infrastructure on AWS.",
@@ -270,7 +270,7 @@ export const DEMO_JOBS = [
     rawCategory: "product",
     jobType: "full-time",
     location: "Remote",
-    salary: "$70k–$100k",
+    salary: "$70k-$100k",
     postedAt: "3 days ago",
     description:
       "Define and execute the roadmap for a payments API product used by businesses across Africa.",
@@ -288,7 +288,7 @@ export const DEMO_JOBS = [
     rawCategory: "finance",
     jobType: "full-time",
     location: "Nairobi, Kenya",
-    salary: "KES 65k–90k",
+    salary: "KES 65k-90k",
     postedAt: "4 days ago",
     description:
       "Prepare financial models, variance analyses, and budget forecasts for retail banking teams.",
@@ -306,7 +306,7 @@ export const DEMO_JOBS = [
     rawCategory: "content",
     jobType: "part-time",
     location: "Remote",
-    salary: "KES 45k–70k",
+    salary: "KES 45k-70k",
     postedAt: "2 days ago",
     description:
       "Develop editorial calendars, write SEO articles, and manage freelance writers to grow organic traffic.",
@@ -324,7 +324,7 @@ export const DEMO_JOBS = [
     rawCategory: "design",
     jobType: "freelance",
     location: "Remote",
-    salary: "$35–$60/hr",
+    salary: "$35-$60/hr",
     postedAt: "5 days ago",
     description:
       "Create cohesive visual identities for startups, including logos, colour systems, typography, and guidelines.",
@@ -342,7 +342,7 @@ export const DEMO_JOBS = [
     rawCategory: "software-dev",
     jobType: "part-time",
     location: "Nairobi, Kenya",
-    salary: "KES 40k–60k",
+    salary: "KES 40k-60k",
     postedAt: "5 days ago",
     description:
       "Build and maintain data ingestion microservices using Flask, Celery, Redis, and Pytest.",
@@ -655,6 +655,128 @@ export const createApiKey = async (name = "HireFlow API Key") => {
 export const revokeApiKey = async (id) => {
   return apiRequest(`/api/api-keys/${id}`, {
     method: "DELETE",
+    headers: authHeaders(),
+  });
+};
+
+export const toggleApiKey = async (id) => {
+  return apiRequest(`/api/api-keys/${id}/toggle`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+};
+
+export const createJob = async (payload) => {
+  const data = await apiRequest("/api/jobs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return data?.data ? normalizeJob(data.data) : data;
+};
+
+export const updateJob = async (id, payload) => {
+  const data = await apiRequest(`/api/jobs/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return data?.data ? normalizeJob(data.data) : data;
+};
+
+export const deleteJob = async (id) => {
+  return apiRequest(`/api/jobs/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+};
+
+export const fetchMyJobs = async () => {
+  const data = await apiRequest("/api/jobs/mine", {
+    headers: authHeaders(),
+  });
+
+  return getJobsArrayFromResponse(data).map(normalizeJob);
+};
+
+export const applyToJob = async (jobId, coverLetter = "") => {
+  return apiRequest("/api/applications", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ jobId, coverLetter }),
+  });
+};
+
+export const fetchMyApplications = async () => {
+  const data = await apiRequest("/api/applications/my", {
+    headers: authHeaders(),
+  });
+
+  return data?.data || [];
+};
+
+export const fetchApplications = async () => {
+  const data = await apiRequest("/api/applications", {
+    headers: authHeaders(),
+  });
+
+  return data?.data || [];
+};
+
+export const updateApplicationStatus = async (id, status) => {
+  const data = await apiRequest(`/api/applications/${id}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  return data?.data;
+};
+
+export const deleteApplication = async (id) => {
+  return apiRequest(`/api/applications/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+};
+
+export const fetchCv = async () => {
+  const data = await apiRequest("/api/cvs/me", {
+    headers: authHeaders(),
+  });
+
+  return data?.data || null;
+};
+
+export const saveCv = async (payload) => {
+  const data = await apiRequest("/api/cvs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return data?.data;
+};
+
+export const fetchAdminOverview = async () => {
+  return apiRequest("/api/admin/overview", {
     headers: authHeaders(),
   });
 };
