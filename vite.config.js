@@ -2,11 +2,12 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ command }) => {
+  const isVercel = process.env.VERCEL === "1";
   const isBuild = command === "build";
 
   return {
     plugins: [react()],
-    base: isBuild ? "/HireFlow2/" : "/",
+    base: isVercel || !isBuild ? "/" : "/HireFlow2/",
     server: {
       open: true,
       proxy: {
